@@ -22,7 +22,7 @@ import argparse
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Union
 
 import requests
 import mgz.summary
@@ -70,7 +70,7 @@ def download_replay(game_id: int, dest: Optional[Path] = None) -> Path:
     return dest
 
 
-def parse_replay(path: Path | str) -> ReplaySummary:
+def parse_replay(path: Union[Path, str]) -> ReplaySummary:
     """Parse basic information from a ``.aoe2record`` file."""
 
     path = Path(path)
