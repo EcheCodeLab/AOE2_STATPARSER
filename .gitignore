@@ -1,0 +1,9 @@
+__pycache__/
+.ipynb_checkpoints/
+*.aoe2record
+*.pickle
+*.pkl
+*.csv
+*.parquet
+*.tmp
+*.log
