@@ -14,7 +14,15 @@ except Exception:  # pragma: no cover
     from PyQt5 import QtWidgets  # type: ignore
     from PyQt5.QtWidgets import QApplication  # type: ignore
 
-from .window import MainWindow
+# Support running as a script (python gui/run_gui.py) or module (python -m gui.run_gui)
+if __package__ in (None, ""):
+    # Ensure repo root on sys.path, then import absolute package
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if repo_root not in sys.path:
+        sys.path.insert(0, repo_root)
+    from gui.window import MainWindow  # type: ignore
+else:
+    from .window import MainWindow
 
 
 def main():
