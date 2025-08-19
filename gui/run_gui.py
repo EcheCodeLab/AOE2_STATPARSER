@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import os
 import sys
 
+# Prefer PySide6 for Matplotlib QtAgg backend; avoid old PyQt5
+os.environ.setdefault("QT_API", "pyside6")
+os.environ.setdefault("MPLBACKEND", "QtAgg")
+
 try:
-    from PySide6 import QtWidgets
-    from PySide6.QtWidgets import QApplication
+    from PySide6 import QtWidgets  # type: ignore
+    from PySide6.QtWidgets import QApplication  # type: ignore
 except Exception:  # pragma: no cover
     from PyQt5 import QtWidgets  # type: ignore
     from PyQt5.QtWidgets import QApplication  # type: ignore
@@ -21,4 +26,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

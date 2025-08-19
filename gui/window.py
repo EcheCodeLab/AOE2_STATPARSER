@@ -16,6 +16,10 @@ except Exception:  # pragma: no cover
         QLabel, QPushButton, QComboBox, QSpinBox, QListWidget, QListWidgetItem, QCheckBox
     )
 
+import os
+# Ensure Matplotlib uses QtAgg with the chosen Qt binding
+os.environ.setdefault("QT_API", os.environ.get("QT_API", "pyside6"))
+os.environ.setdefault("MPLBACKEND", "QtAgg")
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
@@ -191,4 +195,3 @@ class MainWindow(QMainWindow):
         ts = resource_cumulative_timeseries(self.match, per_player, resource=res, window_sec=w)
         series = {next(p.name for p in self.match.players if p.number == pid): ts[pid].values for pid in ts.columns}
         self.res_canvas.plot_lines(ts.index/60, series, 'Tiempo (min)', f'{res.title()} acumulado', f'{res.title()} — ventana {w}s')
-
