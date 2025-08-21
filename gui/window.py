@@ -4,17 +4,17 @@ import traceback
 from pathlib import Path
 
 try:
-    from PySide6 import QtWidgets
+    from PySide6 import QtWidgets, QtCore
     from PySide6.QtWidgets import (
         QMainWindow, QWidget, QFileDialog, QMessageBox, QTabWidget, QVBoxLayout, QHBoxLayout,
-        QLabel, QPushButton, QComboBox, QSpinBox, QListWidget, QListWidgetItem, QCheckBox
+        QLabel, QPushButton, QComboBox, QSpinBox, QListWidget, QListWidgetItem, QCheckBox, QSlider
     )
     from PySide6.QtGui import QAction
 except Exception:  # pragma: no cover
-    from PyQt5 import QtWidgets  # type: ignore
+    from PyQt5 import QtWidgets, QtCore  # type: ignore
     from PyQt5.QtWidgets import (  # type: ignore
         QMainWindow, QWidget, QFileDialog, QMessageBox, QTabWidget, QVBoxLayout, QHBoxLayout,
-        QLabel, QPushButton, QComboBox, QSpinBox, QListWidget, QListWidgetItem, QCheckBox, QAction
+        QLabel, QPushButton, QComboBox, QSpinBox, QListWidget, QListWidgetItem, QCheckBox, QAction, QSlider
     )
 
 import os
@@ -31,6 +31,7 @@ from aoe2stat.metrics import (
     resource_spend_timeseries, resource_balance_timeseries, important_events,
 )
 from aoe2stat.patterns import base_unit_patterns, augment_unit_patterns
+import numpy as np
 
 
 class PlotCanvas(FigureCanvas):
@@ -153,6 +154,7 @@ class MainWindow(QMainWindow):
 
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
+        self._map_cache = None
 
         # Tabs
         self.tab_apm = QWidget(); self.tabs.addTab(self.tab_apm, "APM")
@@ -161,6 +163,7 @@ class MainWindow(QMainWindow):
         self.tab_res = QWidget(); self.tabs.addTab(self.tab_res, "Recursos")
         self.tab_stock = QWidget(); self.tabs.addTab(self.tab_stock, "Stock Total")
         self.tab_score = QWidget(); self.tabs.addTab(self.tab_score, "Score")
+        self.tab_map = QWidget(); self.tabs.addTab(self.tab_map, "Mapa")
 
         self._setup_menu()
         self._setup_apm_tab()
@@ -169,6 +172,7 @@ class MainWindow(QMainWindow):
         self._setup_res_tab()
         self._setup_stock_tab()
         self._setup_score_tab()
+        self._setup_map_tab()
         self.tabs.currentChanged.connect(self._on_tab_changed)
         # initialize theme/legend on canvases
         self._apply_theme_all()
@@ -259,6 +263,24 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(); self.tab_stock.setLayout(layout)
         self.stock_canvas = PlotCanvas(); layout.addWidget(self.stock_canvas)
 
+    def _setup_map_tab(self):
+        layout = QVBoxLayout(); self.tab_map.setLayout(layout)
+        controls = QHBoxLayout(); layout.addLayout(controls)
+        controls.addWidget(QLabel("Tiempo:"))
+        # Slider de tiempo
+        self.map_slider = QSlider(QtCore.Qt.Horizontal)
+        self.map_slider.setMinimum(0); self.map_slider.setMaximum(1000); self.map_slider.setValue(0)
+        self.map_slider.setSingleStep(1); self.map_slider.valueChanged.connect(self.update_map)
+        controls.addWidget(self.map_slider)
+        self.map_time_label = QLabel("0:00")
+        controls.addWidget(self.map_time_label)
+        self.map_canvas = PlotCanvas(); layout.addWidget(self.map_canvas)
+        self._map_cache = None
+
+    def _setup_map_tab(self):
+        layout = QVBoxLayout(); self.tab_map.setLayout(layout)
+        self.map_canvas = PlotCanvas(); layout.addWidget(self.map_canvas)
+
     # ---- Actions ----
     def open_replay(self):
         path, _ = QFileDialog.getOpenFileName(self, "Selecciona .aoe2record", filter="AoE2 Replay (*.aoe2record)")
@@ -276,7 +298,13 @@ class MainWindow(QMainWindow):
                 self.units_players_list.addItem(item)
             # Trigger updates
             self._apply_theme_all()
-            self.update_apm(); self.update_units(); self.update_idle(); self.update_res(); self.update_stock(); self.update_score()
+            # Ajustar slider de mapa a la duración real (segundos)
+            try:
+                self.map_slider.setMaximum(max(1, int(self.match.duration.total_seconds())))
+                self.map_slider.setValue(0)
+            except Exception:
+                pass
+            self.update_apm(); self.update_units(); self.update_idle(); self.update_res(); self.update_stock(); self.update_score(); self.update_map()
         except Exception as e:  # pragma: no cover
             QMessageBox.critical(self, "Error", f"No se pudo abrir el replay:\n{e}\n\n{traceback.format_exc()}")
 
@@ -481,6 +509,7 @@ class MainWindow(QMainWindow):
             getattr(self, 'res_canvas', None),
             getattr(self, 'stock_canvas', None),
             getattr(self, 'score_canvas', None),
+            getattr(self, 'map_canvas', None),
         ]
         self.all_canvases = [c for c in self.all_canvases if c is not None]
 
@@ -543,3 +572,104 @@ class MainWindow(QMainWindow):
             self.update_stock()
         elif w is self.tab_score:
             self.update_score()
+        elif w is self.tab_map:
+            self.update_map()
+
+    def update_map(self):
+        if not self.match:
+            return
+        if not hasattr(self, 'map_slider'):
+            return
+        # Build cache once: cluster positions and assign approximate times
+        if getattr(self, '_map_cache', None) is None:
+            self._map_cache = self._build_map_cache()
+        D = self._map_cache['D']
+        def iso(x, y):
+            ix = x - y; iy = x + y
+            return (ix + D) / (2*D), iy / (2*D)
+        # compute current time from slider
+        dur = self.match.duration.total_seconds()
+        t = (self.map_slider.value() / max(1, self.map_slider.maximum())) * dur
+        self.map_time_label.setText(f"{int(t//60)}:{int(t%60):02d}")
+        colors = self._player_color_map()
+        # draw
+        self.map_canvas.ax.clear(); self.map_canvas._apply_theme()
+        poly = np.array([iso(0,0), iso(D,0), iso(D,D), iso(0,D), iso(0,0)])
+        edgecol = '#888888' if not self.map_canvas.dark else '#aaaaaa'
+        self.map_canvas.ax.plot(poly[:,0], poly[:,1], color=edgecol, linewidth=1.0, alpha=0.8)
+        # points visible up to time t
+        for kind, marker, size in (("tc", 's', 90), ("castle", 'P', 110)):
+            for name, items in self._map_cache[kind].items():
+                c = colors.get(name, '#1f77b4' if kind=='tc' else '#d62728')
+                edge = '#ffffff' if self.map_canvas.dark else '#000000'
+                for pos, ts in items:
+                    if ts <= t + 1e-6:
+                        u, v = iso(pos[0], pos[1])
+                        self.map_canvas.ax.scatter([u],[v], marker=marker, s=size, c=c, edgecolors=edge, linewidths=0.8, alpha=0.9)
+        self.map_canvas.ax.set_xlim(-0.05, 1.05)
+        self.map_canvas.ax.set_ylim(-0.05, 1.05)
+        self.map_canvas.ax.set_aspect('equal', adjustable='box')
+        self.map_canvas.ax.set_xticks([]); self.map_canvas.ax.set_yticks([])
+        self.map_canvas.ax.set_title('Mapa (isométrico) — TCs y Castillos')
+        self.map_canvas.draw()
+
+    def _build_map_cache(self):
+        # gather positions and cluster by proximity to deduplicate tiles per building
+        def cluster(points, thresh=2.5):
+            clusters = []  # list of [sumx,sumy,count]
+            for x,y in points:
+                found = False
+                for c in clusters:
+                    cx, cy, n = c
+                    dx = x - cx/n; dy = y - cy/n
+                    if (dx*dx + dy*dy) ** 0.5 <= thresh:
+                        c[0] += x; c[1] += y; c[2] += 1; found=True; break
+                if not found:
+                    clusters.append([x,y,1])
+            return [(cx/n, cy/n) for cx,cy,n in clusters]
+        # Collect per-player object positions
+        tc_like = ['town center']
+        castle_like = ['castle', 'krepost', 'donjon']
+        per_player = { 'tc': {}, 'castle': {} }
+        for p in self.match.players:
+            pts_tc=[]; pts_castle=[]
+            for o in (p.objects or []):
+                name = str(getattr(o,'name','') or '').lower()
+                pos = getattr(o,'position', None)
+                if not pos: continue
+                if any(k in name for k in tc_like):
+                    pts_tc.append((float(pos.x), float(pos.y)))
+                if any(k in name for k in castle_like):
+                    pts_castle.append((float(pos.x), float(pos.y)))
+            per_player['tc'][p.name] = cluster(pts_tc)
+            per_player['castle'][p.name] = cluster(pts_castle)
+        # Assign times using important_events ordering (heurístico)
+        ev = important_events(self.match)
+        times_tc = {p.number: sorted(ev.loc[ev['kind']=='tc'].loc[ev['player']==p.number, 'time_sec'].tolist()) for p in self.match.players}
+        times_castle = {p.number: sorted(ev.loc[ev['kind']=='castle'].loc[ev['player']==p.number, 'time_sec'].tolist()) for p in self.match.players}
+        # Build mapping name -> list[(pos, t)]
+        out_tc = {}; out_castle = {}
+        for p in self.match.players:
+            spawn = getattr(p, 'position', None)
+            sx, sy = (float(spawn.x), float(spawn.y)) if spawn else (0.0,0.0)
+            # sort clusters by distance from spawn (initial closest)
+            tcs = sorted(per_player['tc'][p.name], key=lambda q: (q[0]-sx)**2 + (q[1]-sy)**2)
+            csts = per_player['castle'][p.name]
+            # assign times: first TC at t=0, others from times_tc
+            lst = []
+            if tcs:
+                lst.append((tcs[0], 0.0))
+                extra = tcs[1:]
+                for i,pos in enumerate(extra):
+                    t = times_tc.get(p.number, [])
+                    ts = t[i] if i < len(t) else self.match.duration.total_seconds()
+                    lst.append((pos, ts))
+            out_tc[p.name] = lst
+            # castles: assign in order; if no events, show none
+            lst2 = []
+            for i,pos in enumerate(sorted(csts, key=lambda q: (q[0]-sx)**2 + (q[1]-sy)**2)):
+                t = times_castle.get(p.number, [])
+                ts = t[i] if i < len(t) else self.match.duration.total_seconds()
+                lst2.append((pos, ts))
+            out_castle[p.name] = lst2
+        return { 'tc': out_tc, 'castle': out_castle, 'D': getattr(self.match.map,'dimension',120) or 120 }

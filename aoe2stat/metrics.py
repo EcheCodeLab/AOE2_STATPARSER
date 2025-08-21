@@ -601,7 +601,7 @@ def approximate_total_balance_timeseries(match, window_sec: int, start_at: Tuple
         if f is None or f.empty:
             continue
         for col in f.columns:
-            total[col] = total.get(col, 0) + f.reindex(idx).fillna(method='ffill').fillna(0)[col]
+            total[col] = total.get(col, 0) + f.reindex(idx).ffill().fillna(0)[col]
     out = pd.DataFrame(total, index=idx)
     out.index.name = 'time_sec'
     return out
