@@ -16,7 +16,11 @@ Convencion sugerida:
 Fecha de inicio: 2026-03-03
 
 - [x] P2-003 Diseñar `RawEvent` canónico: `match_id, t_ms, player, event_type, payload` (Owner: Codex, MVP en `aoe2stat/pipeline.py`)
+- [x] P2-001 Inventariar todo lo que hoy ya extrae `mgz.summary` (Owner: Codex, `docs/PARSER_SOURCE_INVENTORY.md`)
+- [x] P2-002 Inventariar todo lo que hoy ya extrae `mgz.fast` (Owner: Codex, `docs/PARSER_SOURCE_INVENTORY.md`)
 - [x] P2-005 Unificar reloj temporal (ms, segundos de juego, tiempo real) (Owner: Codex, MVP `t_ms` + `time_sec`)
+- [x] P2-009 Extraer metadata completa de partida (mapa, modo, patch, seeds si existen) (Owner: Codex, enriquecido en `aoe2stat/pipeline.py::build_match_meta`)
+- [x] P2-010 Extraer metadata completa de jugadores (civ, team, color, rating si disponible) (Owner: Codex, enriquecido en `aoe2stat/pipeline.py::build_match_meta`)
 - [x] P3-003 Definir esquema de tabla `events_raw` (Owner: Codex, MVP columnas exportables CSV/JSONL)
 - [x] P6-003 Agregar salida CSV/Parquet por flags (Owner: Codex, CSV/JSONL/Parquet por flags; Parquet requiere `pyarrow` o `fastparquet`)
 - [x] P6-009 GUI: selector de replay individual y carpeta de replays (Owner: Codex, menú + navegación anterior/siguiente)
@@ -32,7 +36,15 @@ Fecha de inicio: 2026-03-03
 - [x] P4-008 Formalizar definicion de eco balance (food/wood/gold/stone) (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v2`)
 - [x] P4-002 Formalizar definicion de villager count efectivo (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v3`)
 - [x] P4-004 Formalizar definicion de tiempo en cada edad (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v3`)
-- [~] P6-010 GUI: panel de filtros por jugador/edad/tipo evento (Owner: Codex, implementado en tab Mapa NxN; falta expandir al resto)
+- [x] P4-005 Formalizar definicion de uptime de produccion militar (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v4`)
+- [x] P4-007 Formalizar definicion de idle military (si aplica) (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v4`)
+- [x] P4-009 Formalizar definicion de eficiencia de granjas (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v5`)
+- [x] P4-010 Formalizar definicion de trade efficiency (TG) (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v5`)
+- [x] P4-011 Formalizar definicion de scouting coverage (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v7`)
+- [x] P4-012 Formalizar definicion de presion/agresion temprana (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v7`)
+- [x] P4-016 Agregar intervalos de confianza para metricas aproximadas (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v8`)
+- [x] P4-017 Agregar bandera de calidad por KPI (`high/medium/low confidence`) (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v8`)
+- [~] P6-010 GUI: panel de filtros por jugador/edad/tipo evento (Owner: Codex, implementado en tab Mapa NxN; en curso limpieza de redundancia entre pestañas)
 - [x] P6-013 GUI: bookmarks de timestamps relevantes (Owner: Codex, alta/salto/eliminación/limpieza en tab Mapa)
 - [x] P6-014 GUI: exportar gráfico y exportar datos filtrados (Owner: Codex, export PNG/CSV por pestaña activa)
 - [x] P6-015 GUI: reproducir timeline a velocidad variable (Owner: Codex, play/pausa + velocidades 0.5x/1x/2x/4x)
@@ -45,6 +57,7 @@ Fecha de inicio: 2026-03-03
 - [x] P3-002 Definir esquema de tabla `players` (Owner: Codex, `db/supabase_schema.sql`)
 - [x] P3-004 Definir esquema de tabla `metrics_timeseries` (Owner: Codex, `db/supabase_schema.sql` + `db/migrations/0002__add_metrics_timeseries.sql`)
 - [x] P3-005 Definir esquema de tabla `spatial_frames` (Owner: Codex, `db/supabase_schema.sql`)
+- [x] P3-006 Definir esquema de tabla `labels_ml` (Owner: Codex, `db/supabase_schema.sql` + `db/migrations/0003__add_labels_ml.sql`)
 - [x] P3-007 Documentar tipos, nullabilidad y unidades de cada columna (Owner: Codex, `db/SCHEMA_CONTRACT.md`)
 - [x] P3-008 Definir claves primarias y foráneas lógicas (Owner: Codex, `db/SCHEMA_CONTRACT.md`)
 - [x] P3-009 Definir versionado de esquema (`schema_version`) (Owner: Codex, `db/MIGRATIONS.md`)
@@ -67,6 +80,7 @@ Fecha de inicio: 2026-03-03
 - [x] P1-014 Definir estrategia de configuracion centralizada (yaml/toml/env) (Owner: Codex, baseline env en `aoe2stat/config.py`)
 - [x] P1-015 Definir interfaz estable para plugins de features (Owner: Codex, `FeaturePlugin` + `FeatureRegistry`)
 - [x] P1-008 Reducir logica duplicada entre CLI, notebook y GUI (Owner: Codex, `ReplayAnalysisService` integrado en CLI e ingest + helper notebook)
+- [x] P1-001 Separar claramente parser crudo, transformaciones y visualizacion (Owner: Codex, `aoe2stat/layers.py` + `docs/ARCHITECTURE_LAYERS.md`)
 
 ## Parte 0 - Alineacion funcional y alcance
 
@@ -83,34 +97,34 @@ Fecha de inicio: 2026-03-03
 
 ## Parte 1 - Arquitectura de codigo y modulos
 
-- [ ] P1-001 Separar claramente parser crudo, transformaciones y visualizacion
-- [ ] P1-002 Crear modulo `io` para lectura/escritura de formatos
-- [ ] P1-003 Crear modulo `schema` con dataclasses o modelos tipados
-- [ ] P1-004 Crear modulo `features` para KPIs derivados
-- [ ] P1-005 Crear modulo `spatial` para representaciones de mapa/grilla
-- [ ] P1-006 Crear modulo `batch` para ejecucion masiva
-- [ ] P1-007 Crear modulo `validation` para controles de calidad
-- [ ] P1-008 Reducir logica duplicada entre CLI, notebook y GUI
-- [ ] P1-009 Definir capa de servicios reutilizable por GUI y CLI
+- [x] P1-001 Separar claramente parser crudo, transformaciones y visualizacion
+- [x] P1-002 Crear modulo `io` para lectura/escritura de formatos
+- [x] P1-003 Crear modulo `schema` con dataclasses o modelos tipados
+- [x] P1-004 Crear modulo `features` para KPIs derivados
+- [x] P1-005 Crear modulo `spatial` para representaciones de mapa/grilla
+- [x] P1-006 Crear modulo `batch` para ejecucion masiva
+- [x] P1-007 Crear modulo `validation` para controles de calidad
+- [x] P1-008 Reducir logica duplicada entre CLI, notebook y GUI
+- [x] P1-009 Definir capa de servicios reutilizable por GUI y CLI
 - [ ] P1-010 Definir puntos de extension para nuevos extractores
 - [ ] P1-011 Definir convencion de nombres para columnas/tablas/archivos
 - [ ] P1-012 Definir politica de manejo de errores por capa
 - [ ] P1-013 Definir estrategia de logging estructurado
-- [ ] P1-014 Definir estrategia de configuracion centralizada (yaml/toml/env)
-- [ ] P1-015 Definir interfaz estable para plugins de features
+- [x] P1-014 Definir estrategia de configuracion centralizada (yaml/toml/env)
+- [x] P1-015 Definir interfaz estable para plugins de features
 
 ## Parte 2 - Parser base de replay (raw extraction)
 
-- [ ] P2-001 Inventariar todo lo que hoy ya extrae `mgz.summary`
-- [ ] P2-002 Inventariar todo lo que hoy ya extrae `mgz.fast`
-- [ ] P2-003 Diseñar `RawEvent` canónico: `match_id, t_ms, player, event_type, payload`
+- [x] P2-001 Inventariar todo lo que hoy ya extrae `mgz.summary` (Owner: Codex, `docs/PARSER_SOURCE_INVENTORY.md`)
+- [x] P2-002 Inventariar todo lo que hoy ya extrae `mgz.fast` (Owner: Codex, `docs/PARSER_SOURCE_INVENTORY.md`)
+- [x] P2-003 Diseñar `RawEvent` canónico: `match_id, t_ms, player, event_type, payload`
 - [ ] P2-004 Diseñar `RawSnapshot` canónico para estados por tick/ventana
-- [ ] P2-005 Unificar reloj temporal (ms, segundos de juego, tiempo real)
+- [x] P2-005 Unificar reloj temporal (ms, segundos de juego, tiempo real)
 - [ ] P2-006 Resolver offsets de inicio/fin para partidas incompletas
 - [ ] P2-007 Manejar archivos corruptos o truncados con degradación controlada
 - [ ] P2-008 Manejar compresiones/formatos alternativos si aparecen
-- [ ] P2-009 Extraer metadata completa de partida (mapa, modo, patch, seeds si existen)
-- [ ] P2-010 Extraer metadata completa de jugadores (civ, team, color, rating si disponible)
+- [x] P2-009 Extraer metadata completa de partida (mapa, modo, patch, seeds si existen) (Owner: Codex, enriquecido en `aoe2stat/pipeline.py::build_match_meta`)
+- [x] P2-010 Extraer metadata completa de jugadores (civ, team, color, rating si disponible) (Owner: Codex, enriquecido en `aoe2stat/pipeline.py::build_match_meta`)
 - [ ] P2-011 Extraer timeline de age ups (Feudal/Castle/Imperial)
 - [ ] P2-012 Extraer timeline de creacion de unidades
 - [ ] P2-013 Extraer timeline de construccion de edificios
@@ -129,12 +143,12 @@ Fecha de inicio: 2026-03-03
 
 ## Parte 3 - Esquema de datos y contratos
 
-- [ ] P3-001 Definir esquema de tabla `matches`
-- [ ] P3-002 Definir esquema de tabla `players`
-- [ ] P3-003 Definir esquema de tabla `events_raw`
+- [x] P3-001 Definir esquema de tabla `matches`
+- [x] P3-002 Definir esquema de tabla `players`
+- [x] P3-003 Definir esquema de tabla `events_raw`
 - [x] P3-004 Definir esquema de tabla `metrics_timeseries`
-- [ ] P3-005 Definir esquema de tabla `spatial_frames`
-- [ ] P3-006 Definir esquema de tabla `labels_ml`
+- [x] P3-005 Definir esquema de tabla `spatial_frames`
+- [x] P3-006 Definir esquema de tabla `labels_ml`
 - [x] P3-007 Documentar tipos, nullabilidad y unidades de cada columna
 - [x] P3-008 Definir claves primarias y foráneas lógicas
 - [x] P3-009 Definir versionado de esquema (`schema_version`)
@@ -151,19 +165,19 @@ Fecha de inicio: 2026-03-03
 - [x] P4-002 Formalizar definicion de villager count efectivo (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v3`)
 - [x] P4-003 Formalizar definicion de APM bruto vs eAPM (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v1`)
 - [x] P4-004 Formalizar definicion de tiempo en cada edad (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v3`)
-- [ ] P4-005 Formalizar definicion de uptime de produccion militar
+- [x] P4-005 Formalizar definicion de uptime de produccion militar (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v4`)
 - [x] P4-006 Formalizar definicion de floating resources por ventana (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v2`)
-- [ ] P4-007 Formalizar definicion de idle military (si aplica)
+- [x] P4-007 Formalizar definicion de idle military (si aplica) (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v4`)
 - [x] P4-008 Formalizar definicion de eco balance (food/wood/gold/stone) (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v2`)
-- [ ] P4-009 Formalizar definicion de eficiencia de granjas
-- [ ] P4-010 Formalizar definicion de trade efficiency (TG)
-- [ ] P4-011 Formalizar definicion de scouting coverage
-- [ ] P4-012 Formalizar definicion de presion/agresion temprana
-- [ ] P4-013 Formalizar definicion de power spike por timing tech/unit
+- [x] P4-009 Formalizar definicion de eficiencia de granjas (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v5`)
+- [x] P4-010 Formalizar definicion de trade efficiency (TG) (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v5`)
+- [x] P4-011 Formalizar definicion de scouting coverage (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v7`)
+- [x] P4-012 Formalizar definicion de presion/agresion temprana (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v7`)
+- [x] P4-013 Formalizar definicion de power spike por timing tech/unit (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v7`)
 - [x] P4-014 Crear calculadora de KPIs por ventana configurable (Owner: Codex, `aoe2stat/kpis.py::kpis_by_window` + integración en `aoe2_cli.py metrics`)
 - [x] P4-015 Crear calculadora de KPIs acumulados al minuto N (Owner: Codex, `aoe2stat/kpis.py::kpis_at_minute` + integración en `aoe2_cli.py metrics`)
-- [ ] P4-016 Agregar intervalos de confianza para metricas aproximadas
-- [ ] P4-017 Agregar bandera de calidad por KPI (`high/medium/low confidence`)
+- [x] P4-016 Agregar intervalos de confianza para metricas aproximadas (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v8`)
+- [x] P4-017 Agregar bandera de calidad por KPI (`high/medium/low confidence`) (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v8`)
 - [ ] P4-018 Validar KPIs contra partidas revisadas manualmente
 - [ ] P4-019 Documentar limites conocidos de cada KPI
 - [ ] P4-020 Crear bateria de tests numericos con tolerancias
@@ -172,7 +186,7 @@ Fecha de inicio: 2026-03-03
 
 - [ ] P5-001 Definir sistema de coordenadas unico para todos los mapas
 - [ ] P5-002 Normalizar coordenadas a `[0,1] x [0,1]`
-- [ ] P5-003 Definir grillas base (16x16, 32x32, 64x64) y criterio de eleccion
+- [x] P5-003 Definir grillas base (16x16, 32x32, 64x64) y criterio de eleccion
 - [ ] P5-004 Generar heatmap temporal de unidades propias por celda
 - [ ] P5-005 Generar heatmap temporal de unidades enemigas por celda
 - [ ] P5-006 Generar heatmap temporal de edificios por celda
@@ -183,8 +197,8 @@ Fecha de inicio: 2026-03-03
 - [ ] P5-011 Implementar downsampling temporal para secuencias largas
 - [ ] P5-012 Implementar compresion de tensores espaciales
 - [ ] P5-013 Definir estructura de `spatial_frame` serializable a Parquet/NPZ
-- [ ] P5-014 Crear visualizador de grilla en GUI
-- [ ] P5-015 Crear reproductor temporal con scrubber de tiempo
+- [x] P5-014 Crear visualizador de grilla en GUI
+- [x] P5-015 Crear reproductor temporal con scrubber de tiempo
 - [ ] P5-016 Permitir superponer 2 jugadores en capas separadas
 - [ ] P5-017 Permitir comparar dos partidas lado a lado
 - [ ] P5-018 Agregar deteccion de hotspots por clustering
@@ -195,15 +209,15 @@ Fecha de inicio: 2026-03-03
 
 - [x] P6-001 Definir comando CLI principal con subcomandos (`parse`, `metrics`, `batch`, `inspect`) (Owner: Codex, implementado en `aoe2_cli.py`)
 - [x] P6-002 Agregar salida JSON compacta y JSON detallada (Owner: Codex, implementado en `aoe2_cli.py` con `--json {compact,detailed}`)
-- [ ] P6-003 Agregar salida CSV/Parquet por flags
+- [x] P6-003 Agregar salida CSV/Parquet por flags
 - [x] P6-004 Agregar `--schema-version` y `--parser-version` en salida (Owner: Codex, implementado en `aoe2_cli.py` + bloque `meta`)
 - [x] P6-005 Agregar `--strict` para fallar ante warnings severos (Owner: Codex, implementado en `aoe2_cli.py` con severidad `severe`)
 - [ ] P6-006 Agregar `--continue-on-error` para lotes
 - [ ] P6-007 Agregar barra de progreso para batch
 - [x] P6-008 Agregar resumen final de errores por codigo (Owner: Codex, implementado en `aoe2_cli.py` (`error_summary` en `batch`))
 - [x] P6-009 GUI: selector de replay individual y carpeta de replays
-- [ ] P6-010 GUI: panel de filtros por jugador/edad/tipo evento
-- [ ] P6-011 GUI: panel de KPIs con valores + sparkline
+- [~] P6-010 GUI: panel de filtros por jugador/edad/tipo evento (Owner: Codex, en curso limpieza de redundancia entre pestañas)
+- [x] P6-011 GUI: panel de KPIs con valores + sparkline (Owner: Codex, tab `KPIs` en `gui/window.py` con serie por métrica + snapshot por minuto)
 - [x] P6-012 GUI: overlay de eventos sobre series de tiempo
 - [x] P6-013 GUI: bookmarks de timestamps relevantes
 - [x] P6-014 GUI: exportar grafico y exportar datos filtrados
@@ -405,11 +419,11 @@ Fecha de inicio: 2026-03-03
 
 ## Propuesta de reparto rápido entre varias IAs (inicio)
 
-- [ ] R-001 IA-A: P2-001..P2-010 (inventario y metadata parser)
-- [~] R-002 IA-B: P4-001..P4-010 (definiciones KPI) (Owner: Codex, foco inicial en P4-014/P4-015)
+- [~] R-001 IA-A: P2-001..P2-010 (inventario y metadata parser) (Owner: Codex, completado P2-001/P2-002/P2-003/P2-005/P2-009/P2-010)
+- [x] R-002 IA-B: P4-001..P4-010 (definiciones KPI) (Owner: Codex, completado en `docs/KPI_DEFINITIONS.md`)
 - [ ] R-003 IA-C: P5-001..P5-010 (modelo espacial base)
 - [ ] R-004 IA-D: P12-001..P12-008 (testing base + golden files)
 - [~] R-005 IA-E: P6-001..P6-008 (CLI unificada) (Owner: Codex, tomado P6-001)
 - [ ] R-006 IA-F: P7-001..P7-010 (batch runner)
-- [ ] R-007 IA-G: P3-001..P3-010 (schema + migraciones)
+- [x] R-007 IA-G: P3-001..P3-010 (schema + migraciones) (Owner: Codex, completado en `db/supabase_schema.sql` + `db/migrations`)
 - [ ] R-008 IA-H: P14-001..P14-006 (docs técnicas)

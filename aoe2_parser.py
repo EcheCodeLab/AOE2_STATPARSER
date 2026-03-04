@@ -1,112 +1,11 @@
-"""Simple Age of Empires II DE replay utilities.
-
-This module allows downloading a replay (``.aoe2record``) from the
-official Microsoft servers and extracting a small summary using the
-`mgz` Python library.  It is intentionally small and heavily commented so
-that people who are new to programming can follow the logic.
-
-Typical usage from the command line::
-
-    # Download a match by id and show a JSON summary
-    python aoe2_parser.py --download 396581946
-
-    # Or parse an existing file
-    python aoe2_parser.py AgeIIDE_Replay_396581946.aoe2record
-
-The :func:`parse_replay` function can also be imported and used inside a
-Jupyter/Colab notebook to build plots or perform more advanced analysis.
-"""
+"""CLI entrypoint for AoE2 replay parsing and structured exports."""
 from __future__ import annotations
 
 import argparse
-import json
-from dataclasses import dataclass
+import traceback
 from pathlib import Path
-from typing import List, Any, Optional, Union
 
-import requests
-import mgz.summary
-import mgz.fast
-
-from aoe2stat.pipeline import export_events, export_spatial_frames
-from aoe2stat.services import ReplayAnalysisService
-
-
-@dataclass
-class PlayerInfo:
-    """Information extracted for a single player."""
-
-    name: str
-    civilization: int
-    winner: bool
-    eapm: Optional[int]
-
-
-@dataclass
-class ReplaySummary:
-    """Top level information extracted from a replay."""
-
-    path: Path
-    version: Any
-    duration_seconds: float
-    map_id: int
-    map_name: str
-    players: List[PlayerInfo]
-
-
-def download_replay(game_id: int, dest: Optional[Path] = None) -> Path:
-    """Download a replay from the official servers.
-
-    Parameters
-    ----------
-    game_id: Identifier of the match.
-    dest: Optional path to save the file.
-    """
-
-    if dest is None:
-        dest = Path(f"AgeIIDE_Replay_{game_id}.aoe2record")
-
-    url = f"https://aoe.ms/replay/?gameId={game_id}"
-    response = requests.get(url, timeout=60)
-    response.raise_for_status()
-    dest.write_bytes(response.content)
-    return dest
-
-
-def parse_replay(path: Union[Path, str]) -> ReplaySummary:
-    """Parse basic information from a ``.aoe2record`` file."""
-
-    path = Path(path)
-
-    with path.open('rb') as data:
-        summary = mgz.summary.Summary(data)
-        player_dicts = summary.get_players()
-        players = [
-            PlayerInfo(
-                name=p['name'],
-                civilization=p['civilization'],
-                winner=p['winner'],
-                eapm=p.get('eapm'),
-            )
-            for p in player_dicts
-        ]
-        version = summary.get_version()
-        map_info = summary.get_map()
-        map_id = map_info.get('id')
-        map_name = map_info.get('name')
-
-    with path.open('rb') as data:
-        postgame = mgz.fast.postgame(data)
-        duration_seconds = postgame.get('world_time', 0) / 1000
-
-    return ReplaySummary(
-        path=path,
-        version=version,
-        duration_seconds=duration_seconds,
-        map_id=map_id,
-        map_name=map_name,
-        players=players,
-    )
+from aoe2stat.layers import ParserLayer, TransformLayer, PresentationLayer, dumps_payload
 
 
 def main() -> None:
@@ -142,6 +41,18 @@ def main() -> None:
         help="Export NxN spatial frames to Parquet path.",
     )
     parser.add_argument(
+        "--export-idmap-csv",
+        help="Export replay-derived id mapping table to CSV path.",
+    )
+    parser.add_argument(
+        "--export-idmap-jsonl",
+        help="Export replay-derived id mapping table to JSONL path.",
+    )
+    parser.add_argument(
+        "--export-idmap-parquet",
+        help="Export replay-derived id mapping table to Parquet path.",
+    )
+    parser.add_argument(
         "--grid-size",
         type=int,
         default=32,
@@ -156,7 +67,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.download is not None:
-        replay_path = download_replay(args.download)
+        replay_path = ParserLayer.download_replay(args.download)
     elif args.replay is not None:
         replay_path = Path(args.replay)
         if not replay_path.exists():
@@ -164,16 +75,8 @@ def main() -> None:
     else:
         raise SystemExit("No replay file provided.")
 
-    summary = parse_replay(replay_path)
-
-    def to_dict(obj: Any) -> Any:
-        if hasattr(obj, "__dict__"):
-            return {k: to_dict(v) for k, v in obj.__dict__.items()}
-        if isinstance(obj, list):
-            return [to_dict(x) for x in obj]
-        return obj
-
-    output: dict[str, Any] = {"summary": to_dict(summary)}
+    summary = ParserLayer.parse_summary(replay_path)
+    output: dict[str, object] = {"summary": PresentationLayer.summary_to_payload(summary)}
 
     wants_structured = bool(
         args.export_events_csv
@@ -181,45 +84,56 @@ def main() -> None:
         or args.export_events_parquet
         or args.export_spatial_csv
         or args.export_spatial_parquet
+        or args.export_idmap_csv
+        or args.export_idmap_jsonl
+        or args.export_idmap_parquet
     )
     if wants_structured:
-        service = ReplayAnalysisService()
-        bundle = service.analyze(
-            replay_path=replay_path,
-            grid_size=int(args.grid_size),
-            window_sec=int(args.window_sec),
-        )
-        meta = bundle.match_meta
-        events_df = bundle.events_raw
-        export_events(
-            events_df,
-            csv_path=args.export_events_csv,
-            jsonl_path=args.export_events_jsonl,
-            parquet_path=args.export_events_parquet,
-        )
-        output["structured"] = {
-            "match_meta": meta,
-            "events_count": int(len(events_df)),
-            "events_csv": args.export_events_csv,
-            "events_jsonl": args.export_events_jsonl,
-            "events_parquet": args.export_events_parquet,
-            "features": bundle.features,
-            "validation": bundle.validation,
-        }
-        if args.export_spatial_csv or args.export_spatial_parquet:
-            spatial_df = bundle.spatial_frames
-            export_spatial_frames(
-                spatial_df,
-                csv_path=args.export_spatial_csv,
-                parquet_path=args.export_spatial_parquet,
+        transformer = TransformLayer()
+        try:
+            bundle = transformer.analyze(
+                replay_path=replay_path,
+                grid_size=int(args.grid_size),
+                window_sec=int(args.window_sec),
             )
-            output["structured"]["spatial_frames_count"] = int(len(spatial_df))
-            output["structured"]["spatial_csv"] = args.export_spatial_csv
-            output["structured"]["spatial_parquet"] = args.export_spatial_parquet
-            output["structured"]["grid_size"] = int(args.grid_size)
-            output["structured"]["window_sec"] = int(args.window_sec)
+            output["structured"] = PresentationLayer.export_structured(
+                bundle=bundle,
+                events_csv=args.export_events_csv,
+                events_jsonl=args.export_events_jsonl,
+                events_parquet=args.export_events_parquet,
+                spatial_csv=args.export_spatial_csv,
+                spatial_parquet=args.export_spatial_parquet,
+                idmap_csv=args.export_idmap_csv,
+                idmap_jsonl=args.export_idmap_jsonl,
+                idmap_parquet=args.export_idmap_parquet,
+                grid_size=int(args.grid_size),
+                window_sec=int(args.window_sec),
+                replay_path=replay_path,
+            )
+        except Exception as exc:
+            # Controlled degradation for corrupt/truncated files (P2-007):
+            # keep summary output and emit actionable structured warnings.
+            output["structured"] = {
+                "match_meta": {
+                    "match_id": replay_path.stem,
+                    "replay_path": str(replay_path),
+                    "duration_sec": float(getattr(summary, "duration_seconds", 0.0) or 0.0),
+                    "map_name": str(getattr(summary, "map_name", "") or ""),
+                    "map_dimension": 0.0,
+                    "players": [],
+                },
+                "events_count": 0,
+                "parse_warnings": [
+                    {
+                        "code": "W_STRUCTURED_ANALYZE_FAILED",
+                        "severity": "severe",
+                        "message": f"{type(exc).__name__}: {exc}",
+                    }
+                ],
+                "error_trace": traceback.format_exc(limit=2),
+            }
 
-    print(json.dumps(output, indent=2, default=str))
+    print(dumps_payload(output))
 
 
 if __name__ == "__main__":

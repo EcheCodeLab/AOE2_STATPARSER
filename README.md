@@ -18,6 +18,8 @@ python aoe2_parser.py --download 396581946
 python aoe2_parser.py AgeIIDE_Replay_396581946.aoe2record \
   --export-events-csv out/events.csv \
   --export-events-jsonl out/events.jsonl \
+  --export-idmap-csv out/idmap.csv \
+  --export-idmap-jsonl out/idmap.jsonl \
   --export-events-parquet out/events.parquet \
   --export-spatial-csv out/spatial.csv \
   --export-spatial-parquet out/spatial.parquet \
@@ -49,6 +51,9 @@ npm run parse:download -- 396581946
 # Export estructurado con argumentos extra
 npm run parse -- AgeIIDE_Replay_396581946.aoe2record --export-events-csv out/events.csv --export-spatial-csv out/spatial.csv
 
+# Export de mapeo IDs->nombres (unit/building/technology)
+npm run parse -- AgeIIDE_Replay_396581946.aoe2record --export-idmap-csv out/idmap.csv --export-idmap-jsonl out/idmap.jsonl
+
 # Batch parse (equivalente a: python aoe2_batch.py ...)
 npm run batch -- --input-dir ./replays --out-dir ./batch_out
 ```
@@ -68,8 +73,11 @@ npm run batch -- --input-dir ./replays --out-dir ./batch_out
 - Export estructurado opcional por replay:
   - `--export-events`: genera `events_csv/*.csv` y `events_jsonl/*.jsonl`
   - `--export-spatial`: genera `spatial_csv/*.csv`
+  - `--export-idmap`: genera `idmap_csv/*.csv` y `idmap_jsonl/*.jsonl`
   - `--export-events-parquet`: genera `events_parquet/*.parquet`
   - `--export-spatial-parquet`: genera `spatial_parquet/*.parquet`
+  - `--export-idmap-parquet`: genera `idmap_parquet/*.parquet`
+  - `--merge-idmap`: consolida al final del lote `idmap_observed_merged.csv`, `idmap_canonical.csv`, `idmap_conflicts.json`
   - `--grid-size` y `--window-sec` para el espacial
   - `--parquet-strict`: falla el replay si no se puede exportar Parquet
 
@@ -94,15 +102,34 @@ python aoe2_batch.py --player-profile-ids 6174996 1234567 --per-player-count 5 -
 # Batch + export estructurado (events y espacial)
 python aoe2_batch.py --input-dir ./replays --out-dir ./batch_out --export-events --export-spatial --grid-size 32 --window-sec 10
 
+# Batch + id mapping por replay + consolidado global por patch
+python aoe2_batch.py --input-dir ./replays --out-dir ./batch_out --export-idmap --merge-idmap
+
 # Batch + parquet (requiere pyarrow o fastparquet)
 python aoe2_batch.py --input-dir ./replays --out-dir ./batch_out --export-events-parquet --export-spatial-parquet
 ```
+
+### Consolidar idmap global por patch (P2-019/P2-020)
+
+Si exportaste `--export-idmap-*` en varias partidas, podés consolidar un diccionario canónico por patch:
+
+```bash
+python scripts/p2_merge_idmaps.py ./out --glob "*idmap*.csv" \
+  --out-observed-csv reports/idmap_observed_merged.csv \
+  --out-canonical-csv reports/idmap_canonical.csv \
+  --out-conflicts-json reports/idmap_conflicts.json
+```
+
+- `idmap_observed_merged.csv`: todos los nombres observados agregados por frecuencia.
+- `idmap_canonical.csv`: un nombre canónico por `patch_version + mapping_kind + internal_id`.
+- `idmap_conflicts.json`: conflictos cuando un mismo ID tuvo más de un nombre.
 
 ## Modularización
 
 Además del notebook, el repo incluye una pequeña librería y una GUI de escritorio:
 
 - `aoe2stat/`: utilidades núcleo
+  - `layers.py`: separación de capas (`ParserLayer`, `TransformLayer`, `PresentationLayer`)
   - `config.py`: configuración centralizada desde entorno (`AOE2_*`)
   - `patterns.py`: patrones de unidades (incluye Knight line y más)
   - `core.py`: extracción robusta desde payloads
@@ -117,6 +144,9 @@ Además del notebook, el repo incluye una pequeña librería y una GUI de escrit
   - `notebook.py`: helper para EDA en notebooks (`analyze_replay_for_notebook`)
   - `metrics.py`: APM, series de creación, conteo de aldeanos, idle TC (incl. acumulado), recursos (fallback)
   - `viz.py`: funciones de plotting con Matplotlib
+
+Referencia de arquitectura por capas:
+- `docs/ARCHITECTURE_LAYERS.md`
 - `gui/`: GUI con PySide6/PyQt5
   - `run_gui.py`: punto de entrada
   - `window.py`: ventana principal con pestañas (APM, Unidades, Idle TC, Recursos)
@@ -190,6 +220,7 @@ Tablas incluidas:
 - `players`
 - `events_raw`
 - `metrics_timeseries`
+- `labels_ml`
 - `spatial_frames`
 
 Aplicar schema (ejemplo local con `psql`):

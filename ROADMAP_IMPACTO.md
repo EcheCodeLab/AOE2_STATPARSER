@@ -15,6 +15,10 @@ Referencias: cada bloque apunta a IDs de [CHECKLIST_DESARROLLO.md](/home/echealb
 
 Objetivo: que cualquier replay individual produzca salida consistente y util.
 
+Estado actual (2026-03-03): en progreso avanzado.
+- Completado: `RawEvent` + reloj temporal (`P2-003`, `P2-005`), esquema base `matches/players/events_raw` (`P3-001..P3-003`), export estructurado CSV/JSONL/Parquet (`P6-003`).
+- Pendiente clave: metadata/timelines completos (`P2-009..P2-014`), robustez de parseo (`P2-007`, `P2-021`, `P2-022`), tests de regresión (`P2-025`, `P12-003`, `P12-004`).
+
 Tareas foco:
 - [ ] Definir `RawEvent` y reloj temporal unico (P2-003, P2-005)
 - [ ] Extraer metadata completa de partida/jugadores (P2-009, P2-010)
@@ -29,6 +33,11 @@ Resultado visible:
 ## Fase 2 - GUI Fuerte para Partida Individual (Impacto muy alto)
 
 Objetivo: inspeccionar una replay de punta a punta y entender dinamicas.
+
+Estado actual (2026-03-03): en progreso.
+- Completado: CLI unificada base (`P6-001`, `P6-002`), scrubber/bookmarks (`P6-013`, `P6-015`), export de vista/datos (`P6-014`).
+- Parcial: filtros GUI (`P6-010`).
+- Pendiente: panel KPI dedicado (`P6-011`) y smoke tests GUI (`P6-020`, `P12-011`).
 
 Tareas foco:
 - [ ] CLI unificada con `parse`/`inspect` (P6-001, P6-002)
@@ -45,6 +54,11 @@ Resultado visible:
 
 Objetivo: dejar de depender de analisis efimero y construir base historica.
 
+Estado actual (2026-03-03): en progreso avanzado.
+- Completado: export canónico en Parquet (`P3-013`, `P6-003`) y trazabilidad de versiones (`P3-009` + parser/schema version en salidas).
+- Parcial: runners batch (hay implementación operativa, falta cerrar todos los ítems `P7-001..P7-003` en checklist formal).
+- Pendiente: cobertura completa de validación de calidad (`P8-001..P8-006`).
+
 Tareas foco:
 - [ ] Runner para parsear carpeta/lista/IDs (P7-001..P7-003)
 - [ ] Cache y dedupe por hash (P7-007, P7-008)
@@ -58,6 +72,10 @@ Resultado visible:
 ## Fase 4 - Base de Datos (Supabase/Postgres) para Consulta Continua (Impacto alto)
 
 Objetivo: almacenar datos segmentados para consulta y visualizacion incremental.
+
+Estado actual (2026-03-03): en progreso avanzado.
+- Completado: DDL inicial + índices (`P4-SUPA-001`) y upserts/injest incremental+batch (`P4-SUPA-002`, `P4-SUPA-003`).
+- Pendiente: vistas/materializadas para GUI y validación de consistencia Parquet vs DB.
 
 Enfoque recomendado:
 - Empezar con `Parquet` local como fuente de verdad.
@@ -78,6 +96,10 @@ Resultado visible:
 ## Fase 5 - Espacial NxN (Objetivo clave corto-mediano) (Impacto muy alto)
 
 Objetivo: representar dinamicas de movimiento/creacion sin sprites.
+
+Estado actual (2026-03-03): MVP logrado.
+- Completado: grillas base (`P5-003`), visualizador NxN (`P5-014`), scrubber temporal (`P5-015`).
+- Pendiente: capas espaciales avanzadas (`P5-004..P5-010`) y serialización espacial formal `NPZ`/estructura extendida (`P5-013`).
 
 Tareas foco:
 - [ ] Coordenadas normalizadas `[0,1]x[0,1]` (P5-002)
@@ -131,9 +153,9 @@ Regla practica:
 
 ## Definicion de "Listo para Demo Corta"
 
-Checklist minimo:
-- [ ] Parser estable para replay individual
-- [ ] GUI con KPIs y timeline util
-- [ ] Export estructurado a Parquet
-- [ ] Tablero NxN con reproduccion temporal
-- [ ] Persistencia incremental en DB (al menos `matches`, `players`, `events_raw`)
+Checklist minimo (estado 2026-03-03):
+- [x] Parser estable para replay individual (MVP)
+- [~] GUI con KPIs y timeline util
+- [x] Export estructurado a Parquet
+- [x] Tablero NxN con reproduccion temporal
+- [x] Persistencia incremental en DB (al menos `matches`, `players`, `events_raw`)
