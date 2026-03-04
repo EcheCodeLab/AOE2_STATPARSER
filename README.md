@@ -140,6 +140,10 @@ Reproducción de timeline (pestaña `Mapa`):
 - botón `Play/Pausa` para animar el tiempo
 - selector de velocidad (`0.5x`, `1x`, `2x`, `4x`)
 
+Overlay de eventos sobre series:
+- toggle global en `Ver -> Overlay de eventos`
+- aplica a series de APM, Unidades, Stock Total y Score
+
 ### Mapa NxN (MVP)
 
 La pestaña `Mapa` ahora usa una grilla `NxN` para visualizar densidad espacial de acciones con:
@@ -180,3 +184,21 @@ python aoe2_ingest_postgres.py AgeIIDE_Replay_396581946.aoe2record \
   --window-sec 10 \
   --apply-schema
 ```
+
+Ingest batch a Postgres/Supabase:
+
+```bash
+python aoe2_ingest_batch_postgres.py \
+  --input-dir ./replays \
+  --dsn "$DATABASE_URL" \
+  --parser-version sprint-1.1 \
+  --grid-size 32 \
+  --window-sec 10 \
+  --retries 2 \
+  --continue-on-error \
+  --out-dir ./ingest_out
+```
+
+Salidas del batch:
+- `ingest_out/ingest_results.jsonl`
+- `ingest_out/ingest_report.json`

@@ -21,10 +21,13 @@ Fecha de inicio: 2026-03-03
 - [x] P6-003 Agregar salida CSV/Parquet por flags (Owner: Codex, CSV/JSONL/Parquet por flags; Parquet requiere `pyarrow` o `fastparquet`)
 - [x] P6-009 GUI: selector de replay individual y carpeta de replays (Owner: Codex, menú + navegación anterior/siguiente)
 - [x] P6-001 Definir comando CLI principal con subcomandos (`parse`, `metrics`, `batch`, `inspect`) (Owner: Codex, implementado en `aoe2_cli.py`)
+- [x] P6-002 Agregar salida JSON compacta y JSON detallada (Owner: Codex, implementado en `aoe2_cli.py` con `--json {compact,detailed}`)
+- [x] P6-004 Agregar `--schema-version` y `--parser-version` en salida (Owner: Codex, implementado en `aoe2_cli.py` + bloque `meta`)
 - [~] P6-010 GUI: panel de filtros por jugador/edad/tipo evento (Owner: Codex, implementado en tab Mapa NxN; falta expandir al resto)
 - [x] P6-013 GUI: bookmarks de timestamps relevantes (Owner: Codex, alta/salto/eliminación/limpieza en tab Mapa)
 - [x] P6-014 GUI: exportar gráfico y exportar datos filtrados (Owner: Codex, export PNG/CSV por pestaña activa)
 - [x] P6-015 GUI: reproducir timeline a velocidad variable (Owner: Codex, play/pausa + velocidades 0.5x/1x/2x/4x)
+- [x] P6-012 GUI: overlay de eventos sobre series de tiempo (Owner: Codex, toggle global en menú Ver)
 - [x] P5-003 Definir grillas base (16x16, 32x32, 64x64) y criterio de eleccion (Owner: Codex, MVP con selector en GUI)
 - [x] P5-014 Crear visualizador de grilla en GUI (Owner: Codex, MVP heatmap NxN)
 - [x] P5-015 Crear reproductor temporal con scrubber de tiempo (Owner: Codex, MVP slider por segundos)
@@ -33,6 +36,7 @@ Fecha de inicio: 2026-03-03
 - [x] P3-005 Definir esquema de tabla `spatial_frames` (Owner: Codex, `db/supabase_schema.sql`)
 - [x] P4-SUPA-001 Crear DDL inicial para Supabase/Postgres + índices (Owner: Codex, `db/supabase_schema.sql`)
 - [x] P4-SUPA-002 Implementar ingest incremental a Postgres/Supabase con upsert por `match_id + parser_version` (Owner: Codex, `aoe2_ingest_postgres.py`)
+- [x] P4-SUPA-003 Implementar ingest batch a Postgres/Supabase (carpeta/lista + reintentos + continue-on-error) (Owner: Codex, `aoe2_ingest_batch_postgres.py`)
 
 ## Parte 0 - Alineacion funcional y alcance
 
@@ -160,9 +164,9 @@ Fecha de inicio: 2026-03-03
 ## Parte 6 - CLI, GUI y experiencia de uso
 
 - [x] P6-001 Definir comando CLI principal con subcomandos (`parse`, `metrics`, `batch`, `inspect`) (Owner: Codex, implementado en `aoe2_cli.py`)
-- [ ] P6-002 Agregar salida JSON compacta y JSON detallada
+- [x] P6-002 Agregar salida JSON compacta y JSON detallada (Owner: Codex, implementado en `aoe2_cli.py` con `--json {compact,detailed}`)
 - [ ] P6-003 Agregar salida CSV/Parquet por flags
-- [ ] P6-004 Agregar `--schema-version` y `--parser-version` en salida
+- [x] P6-004 Agregar `--schema-version` y `--parser-version` en salida (Owner: Codex, implementado en `aoe2_cli.py` + bloque `meta`)
 - [ ] P6-005 Agregar `--strict` para fallar ante warnings severos
 - [ ] P6-006 Agregar `--continue-on-error` para lotes
 - [ ] P6-007 Agregar barra de progreso para batch
@@ -170,7 +174,7 @@ Fecha de inicio: 2026-03-03
 - [x] P6-009 GUI: selector de replay individual y carpeta de replays
 - [ ] P6-010 GUI: panel de filtros por jugador/edad/tipo evento
 - [ ] P6-011 GUI: panel de KPIs con valores + sparkline
-- [ ] P6-012 GUI: overlay de eventos sobre series de tiempo
+- [x] P6-012 GUI: overlay de eventos sobre series de tiempo
 - [x] P6-013 GUI: bookmarks de timestamps relevantes
 - [x] P6-014 GUI: exportar grafico y exportar datos filtrados
 - [x] P6-015 GUI: reproducir timeline a velocidad variable
