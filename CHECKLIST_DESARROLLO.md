@@ -11,6 +11,19 @@ Convencion sugerida:
 - `Owner:` IA/persona asignada
 - `Bloquea:` IDs de tareas que dependen de esta
 
+## Trabajo en curso (coordinar antes de tocar)
+
+Fecha de inicio: 2026-03-03
+
+- [x] P2-003 Diseñar `RawEvent` canónico: `match_id, t_ms, player, event_type, payload` (Owner: Codex, MVP en `aoe2stat/pipeline.py`)
+- [x] P2-005 Unificar reloj temporal (ms, segundos de juego, tiempo real) (Owner: Codex, MVP `t_ms` + `time_sec`)
+- [x] P3-003 Definir esquema de tabla `events_raw` (Owner: Codex, MVP columnas exportables CSV/JSONL)
+- [~] P6-003 Agregar salida CSV/Parquet por flags (Owner: Codex, CSV/JSONL implementado, falta Parquet)
+- [~] P6-010 GUI: panel de filtros por jugador/edad/tipo evento (Owner: Codex, implementado en tab Mapa NxN; falta expandir al resto)
+- [x] P5-003 Definir grillas base (16x16, 32x32, 64x64) y criterio de eleccion (Owner: Codex, MVP con selector en GUI)
+- [x] P5-014 Crear visualizador de grilla en GUI (Owner: Codex, MVP heatmap NxN)
+- [x] P5-015 Crear reproductor temporal con scrubber de tiempo (Owner: Codex, MVP slider por segundos)
+
 ## Parte 0 - Alineacion funcional y alcance
 
 - [ ] P0-001 Definir lista exacta de casos de uso de corto plazo (analisis manual de pocas repeticiones)

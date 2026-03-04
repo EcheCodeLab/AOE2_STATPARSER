@@ -31,6 +31,7 @@ from aoe2stat.metrics import (
     resource_spend_timeseries, resource_balance_timeseries, important_events,
 )
 from aoe2stat.patterns import base_unit_patterns, augment_unit_patterns
+from aoe2stat.pipeline import extract_raw_events
 import numpy as np
 
 
@@ -150,6 +151,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("AoE2 Stat Analyzer")
         self.replay_path: Path | None = None
         self.match = None
+        self.events_df = None
         self.unit_patterns = augment_unit_patterns(base_unit_patterns())
 
         self.tabs = QTabWidget()
@@ -267,18 +269,29 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(); self.tab_map.setLayout(layout)
         controls = QHBoxLayout(); layout.addLayout(controls)
         controls.addWidget(QLabel("Tiempo:"))
-        # Slider de tiempo
         self.map_slider = QSlider(QtCore.Qt.Horizontal)
-        self.map_slider.setMinimum(0); self.map_slider.setMaximum(1000); self.map_slider.setValue(0)
+        self.map_slider.setMinimum(0); self.map_slider.setMaximum(1); self.map_slider.setValue(0)
         self.map_slider.setSingleStep(1); self.map_slider.valueChanged.connect(self.update_map)
         controls.addWidget(self.map_slider)
         self.map_time_label = QLabel("0:00")
         controls.addWidget(self.map_time_label)
-        self.map_canvas = PlotCanvas(); layout.addWidget(self.map_canvas)
-        self._map_cache = None
-
-    def _setup_map_tab(self):
-        layout = QVBoxLayout(); self.tab_map.setLayout(layout)
+        controls.addWidget(QLabel("Grid:"))
+        self.map_grid_combo = QComboBox(); self.map_grid_combo.addItems(["16", "24", "32", "48", "64"]); self.map_grid_combo.setCurrentText("32")
+        self.map_grid_combo.currentTextChanged.connect(self.update_map)
+        controls.addWidget(self.map_grid_combo)
+        controls.addWidget(QLabel("Ventana (s):"))
+        self.map_window_combo = QComboBox(); self.map_window_combo.addItems(["5", "10", "20", "30", "60"]); self.map_window_combo.setCurrentText("20")
+        self.map_window_combo.currentTextChanged.connect(self.update_map)
+        controls.addWidget(self.map_window_combo)
+        controls.addWidget(QLabel("Jugador:"))
+        self.map_player_combo = QComboBox(); self.map_player_combo.addItem("Todos")
+        self.map_player_combo.currentTextChanged.connect(self.update_map)
+        controls.addWidget(self.map_player_combo)
+        controls.addWidget(QLabel("Tipo:"))
+        self.map_family_combo = QComboBox()
+        self.map_family_combo.addItems(["Todos", "movement", "build", "production", "military", "research", "economy", "other"])
+        self.map_family_combo.currentTextChanged.connect(self.update_map)
+        controls.addWidget(self.map_family_combo)
         self.map_canvas = PlotCanvas(); layout.addWidget(self.map_canvas)
 
     # ---- Actions ----
@@ -289,6 +302,7 @@ class MainWindow(QMainWindow):
         try:
             self.match = load_match(path)
             self.replay_path = Path(path)
+            self.events_df = extract_raw_events(self.match, match_id=self.replay_path.stem)
             # Populate players list
             self.units_players_list.clear()
             for p in self.match.players:
@@ -296,9 +310,14 @@ class MainWindow(QMainWindow):
                 item.setData(1, int(p.number))
                 item.setSelected(True)
                 self.units_players_list.addItem(item)
+            self.map_player_combo.blockSignals(True)
+            self.map_player_combo.clear()
+            self.map_player_combo.addItem("Todos")
+            for p in self.match.players:
+                self.map_player_combo.addItem(p.name)
+            self.map_player_combo.blockSignals(False)
             # Trigger updates
             self._apply_theme_all()
-            # Ajustar slider de mapa a la duración real (segundos)
             try:
                 self.map_slider.setMaximum(max(1, int(self.match.duration.total_seconds())))
                 self.map_slider.setValue(0)
@@ -580,96 +599,50 @@ class MainWindow(QMainWindow):
             return
         if not hasattr(self, 'map_slider'):
             return
-        # Build cache once: cluster positions and assign approximate times
-        if getattr(self, '_map_cache', None) is None:
-            self._map_cache = self._build_map_cache()
-        D = self._map_cache['D']
-        def iso(x, y):
-            ix = x - y; iy = x + y
-            return (ix + D) / (2*D), iy / (2*D)
-        # compute current time from slider
-        dur = self.match.duration.total_seconds()
-        t = (self.map_slider.value() / max(1, self.map_slider.maximum())) * dur
-        self.map_time_label.setText(f"{int(t//60)}:{int(t%60):02d}")
-        colors = self._player_color_map()
-        # draw
-        self.map_canvas.ax.clear(); self.map_canvas._apply_theme()
-        poly = np.array([iso(0,0), iso(D,0), iso(D,D), iso(0,D), iso(0,0)])
-        edgecol = '#888888' if not self.map_canvas.dark else '#aaaaaa'
-        self.map_canvas.ax.plot(poly[:,0], poly[:,1], color=edgecol, linewidth=1.0, alpha=0.8)
-        # points visible up to time t
-        for kind, marker, size in (("tc", 's', 90), ("castle", 'P', 110)):
-            for name, items in self._map_cache[kind].items():
-                c = colors.get(name, '#1f77b4' if kind=='tc' else '#d62728')
-                edge = '#ffffff' if self.map_canvas.dark else '#000000'
-                for pos, ts in items:
-                    if ts <= t + 1e-6:
-                        u, v = iso(pos[0], pos[1])
-                        self.map_canvas.ax.scatter([u],[v], marker=marker, s=size, c=c, edgecolors=edge, linewidths=0.8, alpha=0.9)
-        self.map_canvas.ax.set_xlim(-0.05, 1.05)
-        self.map_canvas.ax.set_ylim(-0.05, 1.05)
-        self.map_canvas.ax.set_aspect('equal', adjustable='box')
-        self.map_canvas.ax.set_xticks([]); self.map_canvas.ax.set_yticks([])
-        self.map_canvas.ax.set_title('Mapa (isométrico) — TCs y Castillos')
-        self.map_canvas.draw()
+        if self.events_df is None or self.events_df.empty:
+            self.map_canvas.draw_message("Sin eventos con posicion para mostrar")
+            return
 
-    def _build_map_cache(self):
-        # gather positions and cluster by proximity to deduplicate tiles per building
-        def cluster(points, thresh=2.5):
-            clusters = []  # list of [sumx,sumy,count]
-            for x,y in points:
-                found = False
-                for c in clusters:
-                    cx, cy, n = c
-                    dx = x - cx/n; dy = y - cy/n
-                    if (dx*dx + dy*dy) ** 0.5 <= thresh:
-                        c[0] += x; c[1] += y; c[2] += 1; found=True; break
-                if not found:
-                    clusters.append([x,y,1])
-            return [(cx/n, cy/n) for cx,cy,n in clusters]
-        # Collect per-player object positions
-        tc_like = ['town center']
-        castle_like = ['castle', 'krepost', 'donjon']
-        per_player = { 'tc': {}, 'castle': {} }
-        for p in self.match.players:
-            pts_tc=[]; pts_castle=[]
-            for o in (p.objects or []):
-                name = str(getattr(o,'name','') or '').lower()
-                pos = getattr(o,'position', None)
-                if not pos: continue
-                if any(k in name for k in tc_like):
-                    pts_tc.append((float(pos.x), float(pos.y)))
-                if any(k in name for k in castle_like):
-                    pts_castle.append((float(pos.x), float(pos.y)))
-            per_player['tc'][p.name] = cluster(pts_tc)
-            per_player['castle'][p.name] = cluster(pts_castle)
-        # Assign times using important_events ordering (heurístico)
-        ev = important_events(self.match)
-        times_tc = {p.number: sorted(ev.loc[ev['kind']=='tc'].loc[ev['player']==p.number, 'time_sec'].tolist()) for p in self.match.players}
-        times_castle = {p.number: sorted(ev.loc[ev['kind']=='castle'].loc[ev['player']==p.number, 'time_sec'].tolist()) for p in self.match.players}
-        # Build mapping name -> list[(pos, t)]
-        out_tc = {}; out_castle = {}
-        for p in self.match.players:
-            spawn = getattr(p, 'position', None)
-            sx, sy = (float(spawn.x), float(spawn.y)) if spawn else (0.0,0.0)
-            # sort clusters by distance from spawn (initial closest)
-            tcs = sorted(per_player['tc'][p.name], key=lambda q: (q[0]-sx)**2 + (q[1]-sy)**2)
-            csts = per_player['castle'][p.name]
-            # assign times: first TC at t=0, others from times_tc
-            lst = []
-            if tcs:
-                lst.append((tcs[0], 0.0))
-                extra = tcs[1:]
-                for i,pos in enumerate(extra):
-                    t = times_tc.get(p.number, [])
-                    ts = t[i] if i < len(t) else self.match.duration.total_seconds()
-                    lst.append((pos, ts))
-            out_tc[p.name] = lst
-            # castles: assign in order; if no events, show none
-            lst2 = []
-            for i,pos in enumerate(sorted(csts, key=lambda q: (q[0]-sx)**2 + (q[1]-sy)**2)):
-                t = times_castle.get(p.number, [])
-                ts = t[i] if i < len(t) else self.match.duration.total_seconds()
-                lst2.append((pos, ts))
-            out_castle[p.name] = lst2
-        return { 'tc': out_tc, 'castle': out_castle, 'D': getattr(self.match.map,'dimension',120) or 120 }
+        t = float(self.map_slider.value())
+        lookback = int(self.map_window_combo.currentText())
+        t0 = max(0.0, t - lookback)
+        self.map_time_label.setText(f"{int(t//60)}:{int(t%60):02d}")
+        df = self.events_df
+        df = df[(df["time_sec"] >= t0) & (df["time_sec"] <= t)]
+        df = df[df["x"].notna() & df["y"].notna()]
+        if df.empty:
+            self.map_canvas.draw_message("Sin eventos espaciales en esta ventana")
+            return
+
+        selected_player = self.map_player_combo.currentText()
+        if selected_player != "Todos":
+            df = df[df["player_name"] == selected_player]
+        selected_family = self.map_family_combo.currentText()
+        if selected_family != "Todos":
+            df = df[df["action_family"] == selected_family]
+        if df.empty:
+            self.map_canvas.draw_message("Sin datos para los filtros seleccionados")
+            return
+
+        grid_size = int(self.map_grid_combo.currentText())
+        map_dim = float(getattr(self.match.map, "dimension", 120) or 120)
+        map_dim = map_dim if map_dim > 0 else 120.0
+        gx = np.floor((df["x"].astype(float) / map_dim) * grid_size).astype(int).clip(0, grid_size - 1)
+        gy = np.floor((df["y"].astype(float) / map_dim) * grid_size).astype(int).clip(0, grid_size - 1)
+
+        heat = np.zeros((grid_size, grid_size), dtype=float)
+        for cx, cy in zip(gx.to_numpy(), gy.to_numpy()):
+            heat[grid_size - 1 - cy, cx] += 1.0
+
+        self.map_canvas.ax.clear()
+        self.map_canvas._apply_theme()
+        cmap = "inferno" if self.map_canvas.dark else "YlOrRd"
+        self.map_canvas.ax.imshow(heat, cmap=cmap, interpolation="nearest", aspect="equal")
+        self.map_canvas.ax.set_xlabel("X cell")
+        self.map_canvas.ax.set_ylabel("Y cell")
+        self.map_canvas.ax.set_xticks(np.linspace(0, grid_size - 1, 5).astype(int))
+        self.map_canvas.ax.set_yticks(np.linspace(0, grid_size - 1, 5).astype(int))
+        self.map_canvas.ax.set_title(
+            f"Mapa NxN ({grid_size}x{grid_size}) | {selected_player} | {selected_family} | ventana {lookback}s | eventos {len(df)}"
+        )
+        self.map_canvas.draw()
