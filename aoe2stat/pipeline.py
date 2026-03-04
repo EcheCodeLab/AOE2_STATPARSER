@@ -194,7 +194,23 @@ def spatial_frames_from_events(
     ]
 
 
-def export_events(events_df: pd.DataFrame, csv_path: str | Path | None = None, jsonl_path: str | Path | None = None) -> None:
+def _to_parquet(df: pd.DataFrame, path: str | Path) -> None:
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        df.to_parquet(out, index=False)
+    except Exception as exc:
+        raise RuntimeError(
+            "Parquet export failed. Install 'pyarrow' or 'fastparquet' to enable parquet output."
+        ) from exc
+
+
+def export_events(
+    events_df: pd.DataFrame,
+    csv_path: str | Path | None = None,
+    jsonl_path: str | Path | None = None,
+    parquet_path: str | Path | None = None,
+) -> None:
     if csv_path:
         out = Path(csv_path)
         out.parent.mkdir(parents=True, exist_ok=True)
@@ -205,9 +221,18 @@ def export_events(events_df: pd.DataFrame, csv_path: str | Path | None = None, j
         with out.open("w", encoding="utf-8") as fh:
             for row in events_df.to_dict(orient="records"):
                 fh.write(json.dumps(row, ensure_ascii=True, default=str) + "\n")
+    if parquet_path:
+        _to_parquet(events_df, parquet_path)
 
 
-def export_spatial_frames(spatial_df: pd.DataFrame, csv_path: str | Path) -> None:
-    out = Path(csv_path)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    spatial_df.to_csv(out, index=False)
+def export_spatial_frames(
+    spatial_df: pd.DataFrame,
+    csv_path: str | Path | None = None,
+    parquet_path: str | Path | None = None,
+) -> None:
+    if csv_path:
+        out = Path(csv_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        spatial_df.to_csv(out, index=False)
+    if parquet_path:
+        _to_parquet(spatial_df, parquet_path)

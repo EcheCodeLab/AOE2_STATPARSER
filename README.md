@@ -18,13 +18,16 @@ python aoe2_parser.py --download 396581946
 python aoe2_parser.py AgeIIDE_Replay_396581946.aoe2record \
   --export-events-csv out/events.csv \
   --export-events-jsonl out/events.jsonl \
+  --export-events-parquet out/events.parquet \
   --export-spatial-csv out/spatial.csv \
+  --export-spatial-parquet out/spatial.parquet \
   --grid-size 32 \
   --window-sec 10
 ```
 
 El script imprime un resumen en JSON con jugadores, duración y mapa.
 Si pasas flags de export, también devuelve un bloque `structured` con conteos y rutas de salida.
+Para Parquet necesitás instalar `pyarrow` o `fastparquet`.
 
 ## Ejecución vía npm scripts
 
@@ -61,6 +64,13 @@ npm run batch -- --input-dir ./replays --out-dir ./batch_out
 - Reintentos por replay (`--retries`)
 - `--strict` (corta ante error) o `--continue-on-error`
 - Salidas: `results.jsonl`, `checkpoint.json`, `batch_report.json`, y resúmenes por replay
+- Export estructurado opcional por replay:
+  - `--export-events`: genera `events_csv/*.csv` y `events_jsonl/*.jsonl`
+  - `--export-spatial`: genera `spatial_csv/*.csv`
+  - `--export-events-parquet`: genera `events_parquet/*.parquet`
+  - `--export-spatial-parquet`: genera `spatial_parquet/*.parquet`
+  - `--grid-size` y `--window-sec` para el espacial
+  - `--parquet-strict`: falla el replay si no se puede exportar Parquet
 
 Ejemplos:
 
@@ -73,6 +83,12 @@ python aoe2_batch.py --list-file ./replays.txt --out-dir ./batch_out
 
 # Descargar y parsear por IDs
 python aoe2_batch.py --game-ids 396581946 396581947 --download-dir ./downloads --out-dir ./batch_out
+
+# Batch + export estructurado (events y espacial)
+python aoe2_batch.py --input-dir ./replays --out-dir ./batch_out --export-events --export-spatial --grid-size 32 --window-sec 10
+
+# Batch + parquet (requiere pyarrow o fastparquet)
+python aoe2_batch.py --input-dir ./replays --out-dir ./batch_out --export-events-parquet --export-spatial-parquet
 ```
 
 ## Modularización
@@ -107,6 +123,14 @@ npm run dev
 
 Abre un `.aoe2record` desde el menú Archivo. Cada pestaña tiene controles (unidad, ventana, filtros) y actualiza en vivo.
 
+También podés abrir una carpeta completa de replays desde `Archivo -> Abrir carpeta de replays` y navegar rápido con:
+- `Archivo -> Replay anterior`
+- `Archivo -> Replay siguiente`
+
+Exportes desde GUI:
+- `Archivo -> Exportar gráfico (PNG)` para la pestaña activa
+- `Archivo -> Exportar datos filtrados (CSV)` para la pestaña activa
+
 ### Mapa NxN (MVP)
 
 La pestaña `Mapa` ahora usa una grilla `NxN` para visualizar densidad espacial de acciones con:
@@ -116,3 +140,22 @@ La pestaña `Mapa` ahora usa una grilla `NxN` para visualizar densidad espacial 
 - resolución de grilla (`16` a `64`)
 - ventana temporal deslizante (segundos)
 - slider de tiempo para reproducir la partida
+
+## Supabase/Postgres (schema inicial)
+
+Se incluye un DDL base para persistencia incremental en:
+
+- `db/supabase_schema.sql`
+
+Tablas incluidas:
+
+- `matches`
+- `players`
+- `events_raw`
+- `spatial_frames`
+
+Aplicar schema (ejemplo local con `psql`):
+
+```bash
+psql "$DATABASE_URL" -f db/supabase_schema.sql
+```

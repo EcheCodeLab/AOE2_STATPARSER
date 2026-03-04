@@ -18,11 +18,17 @@ Fecha de inicio: 2026-03-03
 - [x] P2-003 Diseñar `RawEvent` canónico: `match_id, t_ms, player, event_type, payload` (Owner: Codex, MVP en `aoe2stat/pipeline.py`)
 - [x] P2-005 Unificar reloj temporal (ms, segundos de juego, tiempo real) (Owner: Codex, MVP `t_ms` + `time_sec`)
 - [x] P3-003 Definir esquema de tabla `events_raw` (Owner: Codex, MVP columnas exportables CSV/JSONL)
-- [~] P6-003 Agregar salida CSV/Parquet por flags (Owner: Codex, CSV/JSONL implementado, falta Parquet)
+- [x] P6-003 Agregar salida CSV/Parquet por flags (Owner: Codex, CSV/JSONL/Parquet por flags; Parquet requiere `pyarrow` o `fastparquet`)
+- [x] P6-009 GUI: selector de replay individual y carpeta de replays (Owner: Codex, menú + navegación anterior/siguiente)
 - [~] P6-010 GUI: panel de filtros por jugador/edad/tipo evento (Owner: Codex, implementado en tab Mapa NxN; falta expandir al resto)
+- [x] P6-014 GUI: exportar gráfico y exportar datos filtrados (Owner: Codex, export PNG/CSV por pestaña activa)
 - [x] P5-003 Definir grillas base (16x16, 32x32, 64x64) y criterio de eleccion (Owner: Codex, MVP con selector en GUI)
 - [x] P5-014 Crear visualizador de grilla en GUI (Owner: Codex, MVP heatmap NxN)
 - [x] P5-015 Crear reproductor temporal con scrubber de tiempo (Owner: Codex, MVP slider por segundos)
+- [x] P3-001 Definir esquema de tabla `matches` (Owner: Codex, `db/supabase_schema.sql`)
+- [x] P3-002 Definir esquema de tabla `players` (Owner: Codex, `db/supabase_schema.sql`)
+- [x] P3-005 Definir esquema de tabla `spatial_frames` (Owner: Codex, `db/supabase_schema.sql`)
+- [x] P4-SUPA-001 Crear DDL inicial para Supabase/Postgres + índices (Owner: Codex, `db/supabase_schema.sql`)
 
 ## Parte 0 - Alineacion funcional y alcance
 
@@ -157,12 +163,12 @@ Fecha de inicio: 2026-03-03
 - [ ] P6-006 Agregar `--continue-on-error` para lotes
 - [ ] P6-007 Agregar barra de progreso para batch
 - [ ] P6-008 Agregar resumen final de errores por codigo
-- [ ] P6-009 GUI: selector de replay individual y carpeta de replays
+- [x] P6-009 GUI: selector de replay individual y carpeta de replays
 - [ ] P6-010 GUI: panel de filtros por jugador/edad/tipo evento
 - [ ] P6-011 GUI: panel de KPIs con valores + sparkline
 - [ ] P6-012 GUI: overlay de eventos sobre series de tiempo
 - [ ] P6-013 GUI: bookmarks de timestamps relevantes
-- [ ] P6-014 GUI: exportar grafico y exportar datos filtrados
+- [x] P6-014 GUI: exportar grafico y exportar datos filtrados
 - [ ] P6-015 GUI: reproducir timeline a velocidad variable
 - [ ] P6-016 GUI: comparar dos jugadores sincronizados
 - [ ] P6-017 GUI: comparar dos partidas sincronizadas por tiempo relativo
