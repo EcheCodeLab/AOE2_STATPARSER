@@ -26,6 +26,12 @@ Fecha de inicio: 2026-03-03
 - [x] P6-005 Agregar `--strict` para fallar ante warnings severos (Owner: Codex, implementado en `aoe2_cli.py` con severidad `severe`)
 - [x] P4-014 Crear calculadora de KPIs por ventana configurable (Owner: Codex, `aoe2stat/kpis.py::kpis_by_window` + integración en `aoe2_cli.py metrics`)
 - [x] P4-015 Crear calculadora de KPIs acumulados al minuto N (Owner: Codex, `aoe2stat/kpis.py::kpis_at_minute` + integración en `aoe2_cli.py metrics`)
+- [x] P4-001 Formalizar definicion de Idle TC (instantaneo y acumulado) (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v1`)
+- [x] P4-003 Formalizar definicion de APM bruto vs eAPM (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v1`)
+- [x] P4-006 Formalizar definicion de floating resources por ventana (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v2`)
+- [x] P4-008 Formalizar definicion de eco balance (food/wood/gold/stone) (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v2`)
+- [x] P4-002 Formalizar definicion de villager count efectivo (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v3`)
+- [x] P4-004 Formalizar definicion de tiempo en cada edad (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v3`)
 - [~] P6-010 GUI: panel de filtros por jugador/edad/tipo evento (Owner: Codex, implementado en tab Mapa NxN; falta expandir al resto)
 - [x] P6-013 GUI: bookmarks de timestamps relevantes (Owner: Codex, alta/salto/eliminación/limpieza en tab Mapa)
 - [x] P6-014 GUI: exportar gráfico y exportar datos filtrados (Owner: Codex, export PNG/CSV por pestaña activa)
@@ -37,12 +43,17 @@ Fecha de inicio: 2026-03-03
 - [x] P5-015 Crear reproductor temporal con scrubber de tiempo (Owner: Codex, MVP slider por segundos)
 - [x] P3-001 Definir esquema de tabla `matches` (Owner: Codex, `db/supabase_schema.sql`)
 - [x] P3-002 Definir esquema de tabla `players` (Owner: Codex, `db/supabase_schema.sql`)
+- [x] P3-004 Definir esquema de tabla `metrics_timeseries` (Owner: Codex, `db/supabase_schema.sql` + `db/migrations/0002__add_metrics_timeseries.sql`)
 - [x] P3-005 Definir esquema de tabla `spatial_frames` (Owner: Codex, `db/supabase_schema.sql`)
 - [x] P3-007 Documentar tipos, nullabilidad y unidades de cada columna (Owner: Codex, `db/SCHEMA_CONTRACT.md`)
 - [x] P3-008 Definir claves primarias y foráneas lógicas (Owner: Codex, `db/SCHEMA_CONTRACT.md`)
 - [x] P3-009 Definir versionado de esquema (`schema_version`) (Owner: Codex, `db/MIGRATIONS.md`)
 - [x] P3-010 Definir migraciones de esquema (Owner: Codex, `db/migrations/0001__baseline_sprint_1_1.sql` + `db/MIGRATIONS.md`)
 - [x] P3-015 Generar diccionario de datos legible para humanos (Owner: Codex, `db/SCHEMA_CONTRACT.md`)
+- [x] P3-011 Definir validaciones de integridad por tabla (Owner: Codex, `aoe2stat/validation.py` + `aoe2stat/services.py`)
+- [x] P3-012 Definir estrategia de particionado de archivos (por fecha/mapa/elo) (Owner: Codex, `db/DATASET_LAYOUT.md`)
+- [x] P3-013 Definir estrategia de compresión (Parquet codec) (Owner: Codex, `snappy` en `aoe2stat/io.py`, `aoe2stat/pipeline.py`, `aoe2_batch.py`)
+- [x] P3-014 Definir convencion de rutas de dataset en disco (Owner: Codex, `db/DATASET_LAYOUT.md` + helper `aoe2stat/io.py::dataset_relpath`)
 - [x] P4-SUPA-001 Crear DDL inicial para Supabase/Postgres + índices (Owner: Codex, `db/supabase_schema.sql`)
 - [x] P4-SUPA-002 Implementar ingest incremental a Postgres/Supabase con upsert por `match_id + parser_version` (Owner: Codex, `aoe2_ingest_postgres.py`)
 - [x] P4-SUPA-003 Implementar ingest batch a Postgres/Supabase (carpeta/lista + reintentos + continue-on-error) (Owner: Codex, `aoe2_ingest_batch_postgres.py`)
@@ -55,6 +66,7 @@ Fecha de inicio: 2026-03-03
 - [x] P1-009 Definir capa de servicios reutilizable por GUI y CLI (Owner: Codex, `aoe2stat/services.py` + uso en `aoe2_parser.py`)
 - [x] P1-014 Definir estrategia de configuracion centralizada (yaml/toml/env) (Owner: Codex, baseline env en `aoe2stat/config.py`)
 - [x] P1-015 Definir interfaz estable para plugins de features (Owner: Codex, `FeaturePlugin` + `FeatureRegistry`)
+- [x] P1-008 Reducir logica duplicada entre CLI, notebook y GUI (Owner: Codex, `ReplayAnalysisService` integrado en CLI e ingest + helper notebook)
 
 ## Parte 0 - Alineacion funcional y alcance
 
@@ -120,29 +132,29 @@ Fecha de inicio: 2026-03-03
 - [ ] P3-001 Definir esquema de tabla `matches`
 - [ ] P3-002 Definir esquema de tabla `players`
 - [ ] P3-003 Definir esquema de tabla `events_raw`
-- [ ] P3-004 Definir esquema de tabla `metrics_timeseries`
+- [x] P3-004 Definir esquema de tabla `metrics_timeseries`
 - [ ] P3-005 Definir esquema de tabla `spatial_frames`
 - [ ] P3-006 Definir esquema de tabla `labels_ml`
 - [x] P3-007 Documentar tipos, nullabilidad y unidades de cada columna
 - [x] P3-008 Definir claves primarias y foráneas lógicas
 - [x] P3-009 Definir versionado de esquema (`schema_version`)
 - [x] P3-010 Definir migraciones de esquema
-- [ ] P3-011 Definir validaciones de integridad por tabla
-- [ ] P3-012 Definir estrategia de particionado de archivos (por fecha/mapa/elo)
-- [ ] P3-013 Definir estrategia de compresión (Parquet codec)
-- [ ] P3-014 Definir convencion de rutas de dataset en disco
+- [x] P3-011 Definir validaciones de integridad por tabla
+- [x] P3-012 Definir estrategia de particionado de archivos (por fecha/mapa/elo)
+- [x] P3-013 Definir estrategia de compresión (Parquet codec)
+- [x] P3-014 Definir convencion de rutas de dataset en disco
 - [x] P3-015 Generar diccionario de datos legible para humanos
 
 ## Parte 4 - KPIs y métricas de juego (core analytics)
 
-- [ ] P4-001 Formalizar definicion de Idle TC (instantaneo y acumulado)
-- [ ] P4-002 Formalizar definicion de villager count efectivo
-- [ ] P4-003 Formalizar definicion de APM bruto vs eAPM
-- [ ] P4-004 Formalizar definicion de tiempo en cada edad
+- [x] P4-001 Formalizar definicion de Idle TC (instantaneo y acumulado) (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v1`)
+- [x] P4-002 Formalizar definicion de villager count efectivo (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v3`)
+- [x] P4-003 Formalizar definicion de APM bruto vs eAPM (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v1`)
+- [x] P4-004 Formalizar definicion de tiempo en cada edad (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v3`)
 - [ ] P4-005 Formalizar definicion de uptime de produccion militar
-- [ ] P4-006 Formalizar definicion de floating resources por ventana
+- [x] P4-006 Formalizar definicion de floating resources por ventana (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v2`)
 - [ ] P4-007 Formalizar definicion de idle military (si aplica)
-- [ ] P4-008 Formalizar definicion de eco balance (food/wood/gold/stone)
+- [x] P4-008 Formalizar definicion de eco balance (food/wood/gold/stone) (Owner: Codex, `docs/KPI_DEFINITIONS.md` -> `kpi_defs_v2`)
 - [ ] P4-009 Formalizar definicion de eficiencia de granjas
 - [ ] P4-010 Formalizar definicion de trade efficiency (TG)
 - [ ] P4-011 Formalizar definicion de scouting coverage

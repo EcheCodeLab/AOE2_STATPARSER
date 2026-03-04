@@ -114,6 +114,7 @@ Además del notebook, el repo incluye una pequeña librería y una GUI de escrit
   - `validation.py`: controles de calidad de datasets derivados
   - `services.py`: orquestación reusable por CLI/GUI (`ReplayAnalysisService`)
   - `batch.py`: ejecución batch con la capa de servicios
+  - `notebook.py`: helper para EDA en notebooks (`analyze_replay_for_notebook`)
   - `metrics.py`: APM, series de creación, conteo de aldeanos, idle TC (incl. acumulado), recursos (fallback)
   - `viz.py`: funciones de plotting con Matplotlib
 - `gui/`: GUI con PySide6/PyQt5
@@ -178,12 +179,17 @@ Se incluye un DDL base para persistencia incremental en:
 - `db/SCHEMA_CONTRACT.md` (tipos, nullabilidad, unidades y claves lógicas)
 - `db/MIGRATIONS.md` (política de versionado y estrategia de migraciones)
 - `db/migrations/0001__baseline_sprint_1_1.sql` (baseline incremental)
+- `db/DATASET_LAYOUT.md` (particionado, convención de rutas y compresión Parquet)
+
+Validaciones de integridad por tabla y cruzadas:
+- `aoe2stat/validation.py` (`matches`, `players`, `events_raw`, `spatial_frames` + consistencia cross-table)
 
 Tablas incluidas:
 
 - `matches`
 - `players`
 - `events_raw`
+- `metrics_timeseries`
 - `spatial_frames`
 
 Aplicar schema (ejemplo local con `psql`):
@@ -221,3 +227,18 @@ python aoe2_ingest_batch_postgres.py \
 Salidas del batch:
 - `ingest_out/ingest_results.jsonl`
 - `ingest_out/ingest_report.json`
+
+Uso en notebook (sin duplicar lógica):
+
+```python
+from aoe2stat.notebook import analyze_replay_for_notebook
+
+bundle = analyze_replay_for_notebook(
+    "AgeIIDE_Replay_396581946.aoe2record",
+    grid_size=32,
+    window_sec=10,
+)
+
+events_df = bundle["events_raw"]
+spatial_df = bundle["spatial_frames"]
+```

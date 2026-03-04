@@ -5,8 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from aoe2stat.core import load_match
-from aoe2stat.pipeline import build_match_meta, extract_raw_events, spatial_frames_from_events
+from aoe2stat.services import ReplayAnalysisService
 
 
 def _require_psycopg2():
@@ -46,15 +45,15 @@ def ingest_replay(
 ) -> dict[str, Any]:
     psycopg2, execute_batch = _require_psycopg2()
 
-    match = load_match(replay_path)
-    meta = build_match_meta(match, replay_path)
-    events_df = extract_raw_events(match, match_id=meta.match_id)
-    spatial_df = spatial_frames_from_events(
-        events_df,
-        map_dimension=meta.map_dimension,
+    service = ReplayAnalysisService()
+    bundle = service.analyze(
+        replay_path=replay_path,
         grid_size=grid_size,
         window_sec=window_sec,
     )
+    meta = bundle.match_meta
+    events_df = bundle.events_raw
+    spatial_df = bundle.spatial_frames
 
     conn = psycopg2.connect(dsn)
     try:
@@ -75,25 +74,25 @@ def ingest_replay(
                       map_dimension = excluded.map_dimension
                     """,
                     (
-                        meta.match_id,
-                        meta.replay_path,
-                        float(meta.duration_sec),
-                        meta.map_name,
-                        float(meta.map_dimension),
+                        str(meta["match_id"]),
+                        str(meta["replay_path"]),
+                        float(meta["duration_sec"]),
+                        str(meta.get("map_name", "")),
+                        float(meta.get("map_dimension", 120.0)),
                         parser_version,
                     ),
                 )
 
                 players_rows = [
                     (
-                        meta.match_id,
+                        str(meta["match_id"]),
                         parser_version,
                         int(p["player_id"]),
                         str(p["player_name"]),
                         str(p.get("civilization") or ""),
                         int(p.get("color_id") or 0),
                     )
-                    for p in meta.players
+                    for p in (meta.get("players") or [])
                 ]
                 execute_batch(
                     cur,
@@ -188,12 +187,14 @@ def ingest_replay(
         conn.close()
 
     return {
-        "match_id": meta.match_id,
+        "match_id": str(meta["match_id"]),
         "parser_version": parser_version,
         "events_count": int(len(events_df)),
         "spatial_frames_count": int(len(spatial_df)),
         "grid_size": int(grid_size),
         "window_sec": int(window_sec),
+        "features": bundle.features,
+        "validation": bundle.validation,
         "status": "ok",
     }
 
