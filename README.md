@@ -145,6 +145,13 @@ Además del notebook, el repo incluye una pequeña librería y una GUI de escrit
   - `metrics.py`: APM, series de creación, conteo de aldeanos, idle TC (incl. acumulado), recursos (fallback)
   - `viz.py`: funciones de plotting con Matplotlib
 
+Notas Parte 5 (baseline espacial):
+- normalización de coordenadas `x,y -> [0,1]` (`normalize_coordinates`)
+- canales por perspectiva (`own_units`, `enemy_units`, `buildings`, `combat`, `risk_proxy`)
+- superposición A/B de jugadores en capas separadas (`overlay_player_layers`)
+- tensor `NPZ` para IA (`spatial_frames_to_tensor`, `export_spatial_tensor_npz`)
+- tests de consistencia espacial (`tests/test_spatial_consistency.py`)
+
 Referencia de arquitectura por capas:
 - `docs/ARCHITECTURE_LAYERS.md`
 - `gui/`: GUI con PySide6/PyQt5
@@ -200,6 +207,43 @@ La pestaña `Mapa` ahora usa una grilla `NxN` para visualizar densidad espacial 
 - resolución de grilla (`16` a `64`)
 - ventana temporal deslizante (segundos)
 - slider de tiempo para reproducir la partida
+
+## Web Viewer (nuevo - migracion en curso)
+
+Se inicio la migracion visual a web para superar limitaciones de UI desktop.
+
+### Dependencias
+
+```bash
+pip install fastapi uvicorn mgz numpy pandas
+```
+
+### Levantar servidor local
+
+```bash
+npm run web
+# o
+python -m aoe2_web.app
+```
+
+Abrir en navegador:
+
+```text
+http://127.0.0.1:8000
+```
+
+### Estado actual (MVP)
+
+- Carga de replay por path local
+- Mapa NxN web (grid fijo alto)
+- Timeline + play/pause
+- Capas: Actividad / Propio / Enemigo / Edificios / Presión
+- Overlay de recursos + objetos clave (TC/TC inicial/Castillo)
+- Tooltip hover sobre objetos
+- Log analítico temporal en tabla
+
+Plan de migracion completo:
+- `docs/WEB_MIGRATION_PLAN.md`
 
 ## Supabase/Postgres (schema inicial)
 

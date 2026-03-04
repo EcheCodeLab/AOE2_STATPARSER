@@ -63,6 +63,8 @@ Fecha de inicio: 2026-03-03
 - [x] P5-003 Definir grillas base (16x16, 32x32, 64x64) y criterio de eleccion (Owner: Codex, MVP con selector en GUI)
 - [x] P5-014 Crear visualizador de grilla en GUI (Owner: Codex, MVP heatmap NxN)
 - [x] P5-015 Crear reproductor temporal con scrubber de tiempo (Owner: Codex, MVP slider por segundos)
+- [x] P5-016 Permitir superponer 2 jugadores en capas separadas (Owner: Codex, `overlay_player_layers` en `aoe2stat/spatial.py`)
+- [x] P5-020 Escribir tests de consistencia espacial (bordes, simetria, escalado) (Owner: Codex, `tests/test_spatial_consistency.py`)
 - [x] P3-001 Definir esquema de tabla `matches` (Owner: Codex, `db/supabase_schema.sql`)
 - [x] P3-002 Definir esquema de tabla `players` (Owner: Codex, `db/supabase_schema.sql`)
 - [x] P3-004 Definir esquema de tabla `metrics_timeseries` (Owner: Codex, `db/supabase_schema.sql` + `db/migrations/0002__add_metrics_timeseries.sql`)
@@ -209,11 +211,11 @@ Fecha de inicio: 2026-03-03
 - [ ] P5-013 Definir estructura de `spatial_frame` serializable a Parquet/NPZ
 - [x] P5-014 Crear visualizador de grilla en GUI
 - [x] P5-015 Crear reproductor temporal con scrubber de tiempo
-- [ ] P5-016 Permitir superponer 2 jugadores en capas separadas
+- [x] P5-016 Permitir superponer 2 jugadores en capas separadas
 - [ ] P5-017 Permitir comparar dos partidas lado a lado
 - [ ] P5-018 Agregar deteccion de hotspots por clustering
 - [ ] P5-019 Agregar deteccion de rutas frecuentes (flow fields)
-- [ ] P5-020 Escribir tests de consistencia espacial (bordes, simetria, escalado)
+- [x] P5-020 Escribir tests de consistencia espacial (bordes, simetria, escalado)
 
 ## Parte 6 - CLI, GUI y experiencia de uso
 
@@ -232,11 +234,42 @@ Fecha de inicio: 2026-03-03
 - [x] P6-013 GUI: bookmarks de timestamps relevantes
 - [x] P6-014 GUI: exportar grafico y exportar datos filtrados
 - [x] P6-015 GUI: reproducir timeline a velocidad variable
+- [x] P6-021 GUI: consolidar pestañas redundantes en flujo principal (`Overview` + `Timeline` + `Mapa`) (Owner: Codex, ocultadas tabs legacy APM/Unidades/Idle/Stock/Ventaja)
+- [x] P6-022 GUI: timeline unificado de recursos colectados por jugador en función del tiempo (Owner: Codex, modo `Recursos colectados`)
+- [x] P6-023 GUI: timeline unificado de unidades creadas por tipo y jugador (Owner: Codex, modo `Unidades creadas`)
+- [x] P6-024 GUI: timeline de edificios construidos por jugador (Owner: Codex, modo `Edificios construidos`)
+- [x] P6-025 GUI: timeline de clicks acumulados / relación APM (Owner: Codex, modo `Clicks/APM`)
+- [~] P6-026 GUI: timeline de enemigos matados (proxy) por jugador (Owner: Codex, proxy inicial via `KILL|DESTROY|DELETE`; pendiente mejorar atribución real de kills)
+- [x] P6-027 GUI: cálculo bajo demanda por serie (botón `Calcular`) + modo auto opcional (Owner: Codex, implementado en tab `Timeline`)
+- [x] P6-028 GUI: cachear resultados temporales por replay/filtros para evitar recomputo (Owner: Codex, `timeline_cache`)
+- [ ] P6-029 GUI: panel comparativo sincronizado para dos jugadores (económico + militar) en la misma vista
 - [ ] P6-016 GUI: comparar dos jugadores sincronizados
 - [ ] P6-017 GUI: comparar dos partidas sincronizadas por tiempo relativo
 - [ ] P6-018 GUI: tema claro/oscuro sin romper legibilidad
 - [ ] P6-019 GUI: manejo de errores amigable y accionable
 - [ ] P6-020 GUI: tests basicos de smoke
+
+## Parte 4B - KPIs economicos/militares pedidos
+
+- [ ] P4B-001 Definir KPI `idle_eco_time` por jugador y por fase (dark/feudal/castle/imperial)
+- [ ] P4B-002 Definir KPI `villager_labour_efficiency` (tiempo productivo / tiempo total observable)
+- [ ] P4B-003 Definir KPI `resource_delivery_efficiency` (tiempo de desplazamiento a drop-site vs tiempo de recolección)
+- [ ] P4B-004 Definir KPI `military_kill_efficiency` (kills confirmados o proxy por costo destruido / costo perdido)
+- [ ] P4B-005 Definir KPI `build_uptime` por edificio de producción (TC/Barracks/Archery/Stable/Siege)
+- [ ] P4B-006 Implementar cálculo incremental de KPIs (ventanas) y snapshot acumulado al minuto N
+- [ ] P4B-007 Exponer KPIs nuevos en CLI (`aoe2_cli.py metrics`) y GUI (`Overview`)
+- [ ] P4B-008 Documentar supuestos y nivel de confianza de cada KPI nuevo (`high/medium/low`)
+
+## Parte 5B - Trayectorias y eficiencia laboral de aldeanos
+
+- [ ] P5B-001 Reconstruir trayectorias aproximadas de aldeanos por timestamps de comandos/eventos con posición
+- [ ] P5B-002 Estimar distancia recorrida total y distancia improductiva por aldeano
+- [ ] P5B-003 Inferir segmentos productivos vs improductivos (gather, return, idle, walk)
+- [ ] P5B-004 Estimar tiempo de ida/vuelta a drop-sites por tipo de recurso
+- [ ] P5B-005 Calcular `work_labour_efficiency` agregado por jugador y por ventana temporal
+- [ ] P5B-006 Permitir ejecución `on-demand` de cálculos costosos (trayectorias) desde GUI/CLI
+- [ ] P5B-007 Guardar cache intermedio de trayectorias por replay para reutilización
+- [ ] P5B-008 Validar métricas de trayectoria con muestras manuales y tests de tolerancia
 
 ## Parte 7 - Procesamiento batch y escalabilidad
 
