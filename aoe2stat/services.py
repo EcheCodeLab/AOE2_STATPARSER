@@ -8,7 +8,7 @@ from .io import read_match
 from .pipeline import build_match_meta, extract_raw_events
 from .schema import DataFrameBundle, dataclass_to_dict
 from .spatial import build_spatial_frames
-from .validation import validate_events_raw, validate_spatial_frames
+from .validation import validate_integrity
 
 
 class ReplayAnalysisService:
@@ -33,10 +33,11 @@ class ReplayAnalysisService:
             window_sec=int(window_sec or self.config.default_window_sec),
         )
         features = self.feature_registry.run_all(match, events_raw)
-        validation = {
-            "events_raw": validate_events_raw(events_raw),
-            "spatial_frames": validate_spatial_frames(spatial_frames),
-        }
+        validation = validate_integrity(
+            match_meta=dataclass_to_dict(meta),
+            events_raw=events_raw,
+            spatial_frames=spatial_frames,
+        )
         return DataFrameBundle(
             match_meta=dataclass_to_dict(meta),
             events_raw=events_raw,
@@ -44,4 +45,3 @@ class ReplayAnalysisService:
             features=features,
             validation=validation,
         )
-

@@ -46,37 +46,6 @@ create table if not exists public.events_raw (
   unique (match_id, parser_version, event_id)
 );
 
-create table if not exists public.metrics_timeseries (
-  id bigserial primary key,
-  match_id text not null,
-  parser_version text not null default 'sprint-1.1',
-  metric_name text not null,
-  metric_scope text not null default 'player',
-  player_id integer not null default 0,
-  time_bin_sec integer not null,
-  window_sec integer not null default 0,
-  metric_value double precision not null,
-  metric_unit text,
-  confidence text,
-  created_at timestamptz not null default now(),
-  unique (match_id, parser_version, metric_name, metric_scope, player_id, time_bin_sec, window_sec)
-);
-
-create table if not exists public.labels_ml (
-  id bigserial primary key,
-  match_id text not null,
-  parser_version text not null default 'sprint-1.1',
-  label_name text not null,
-  label_value text not null,
-  label_class text,
-  player_id integer not null default 0,
-  time_bin_sec integer not null,
-  horizon_sec integer not null default 0,
-  source text,
-  created_at timestamptz not null default now(),
-  unique (match_id, parser_version, label_name, player_id, time_bin_sec, horizon_sec)
-);
-
 create table if not exists public.spatial_frames (
   id bigserial primary key,
   match_id text not null,
@@ -99,12 +68,9 @@ create index if not exists idx_players_match on public.players (match_id, player
 create index if not exists idx_events_match_time on public.events_raw (match_id, t_ms);
 create index if not exists idx_events_match_player_time on public.events_raw (match_id, player_id, t_ms);
 create index if not exists idx_events_type on public.events_raw (action_type, action_family);
-create index if not exists idx_metrics_match_time on public.metrics_timeseries (match_id, time_bin_sec);
-create index if not exists idx_metrics_name_scope on public.metrics_timeseries (metric_name, metric_scope, player_id);
-create index if not exists idx_labels_match_time on public.labels_ml (match_id, time_bin_sec);
-create index if not exists idx_labels_name_player on public.labels_ml (label_name, player_id, horizon_sec);
 create index if not exists idx_spatial_match_time on public.spatial_frames (match_id, time_bin_sec);
 create index if not exists idx_spatial_match_player on public.spatial_frames (match_id, player_id, action_family);
 create index if not exists idx_spatial_grid on public.spatial_frames (grid_size, cell_x, cell_y);
 
 commit;
+

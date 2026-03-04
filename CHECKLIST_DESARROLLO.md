@@ -48,6 +48,16 @@ Fecha de inicio: 2026-03-03
 - [x] P6-013 GUI: bookmarks de timestamps relevantes (Owner: Codex, alta/salto/eliminación/limpieza en tab Mapa)
 - [x] P6-014 GUI: exportar gráfico y exportar datos filtrados (Owner: Codex, export PNG/CSV por pestaña activa)
 - [x] P6-015 GUI: reproducir timeline a velocidad variable (Owner: Codex, play/pausa + velocidades 0.5x/1x/2x/4x)
+- [~] P2-004 Diseñar `RawSnapshot` canónico para estados por tick/ventana (Owner: Codex, en implementación en `aoe2stat/pipeline.py`)
+- [~] P2-011 Extraer timeline de age ups (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+- [~] P2-012 Extraer timeline de creacion de unidades (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+- [~] P2-013 Extraer timeline de construccion de edificios (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+- [~] P2-014 Extraer timeline de investigaciones tecnologicas (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+- [~] P2-015 Extraer eventos de combate (daño, muertes, trades cuando aplique) (Owner: Codex, baseline por clasificación de comandos en `aoe2stat/pipeline.py`)
+- [~] P2-016 Extraer eventos de economia (gather/deposit cuando sea posible) (Owner: Codex, baseline por `action_family=economy` en `aoe2stat/pipeline.py`)
+- [~] P2-017 Extraer eventos de comandos del jugador (inputs/APM base) (Owner: Codex, baseline `player_commands` en `aoe2stat/pipeline.py`)
+- [~] P2-018 Extraer posiciones x/y de entidades y/o eventos (Owner: Codex, en integración `spatial_events` en payload estructurado)
+- [~] P2-025 Escribir tests de regresion con replays reales pequeños (Owner: Codex, en implementación `tests/test_part2_regression.py`)
 - [x] P6-012 GUI: overlay de eventos sobre series de tiempo (Owner: Codex, toggle global en menú Ver)
 - [x] P7-003 Implementar runner batch por IDs (descarga + parse) (Owner: Codex, extendido con fetch reciente por jugador alias/profile_id)
 - [x] P5-003 Definir grillas base (16x16, 32x32, 64x64) y criterio de eleccion (Owner: Codex, MVP con selector en GUI)
@@ -118,28 +128,28 @@ Fecha de inicio: 2026-03-03
 - [x] P2-001 Inventariar todo lo que hoy ya extrae `mgz.summary` (Owner: Codex, `docs/PARSER_SOURCE_INVENTORY.md`)
 - [x] P2-002 Inventariar todo lo que hoy ya extrae `mgz.fast` (Owner: Codex, `docs/PARSER_SOURCE_INVENTORY.md`)
 - [x] P2-003 Diseñar `RawEvent` canónico: `match_id, t_ms, player, event_type, payload`
-- [ ] P2-004 Diseñar `RawSnapshot` canónico para estados por tick/ventana
+- [~] P2-004 Diseñar `RawSnapshot` canónico para estados por tick/ventana (Owner: Codex, en implementación en `aoe2stat/pipeline.py`)
 - [x] P2-005 Unificar reloj temporal (ms, segundos de juego, tiempo real)
 - [ ] P2-006 Resolver offsets de inicio/fin para partidas incompletas
 - [ ] P2-007 Manejar archivos corruptos o truncados con degradación controlada
 - [ ] P2-008 Manejar compresiones/formatos alternativos si aparecen
 - [x] P2-009 Extraer metadata completa de partida (mapa, modo, patch, seeds si existen) (Owner: Codex, enriquecido en `aoe2stat/pipeline.py::build_match_meta`)
 - [x] P2-010 Extraer metadata completa de jugadores (civ, team, color, rating si disponible) (Owner: Codex, enriquecido en `aoe2stat/pipeline.py::build_match_meta`)
-- [ ] P2-011 Extraer timeline de age ups (Feudal/Castle/Imperial)
-- [ ] P2-012 Extraer timeline de creacion de unidades
-- [ ] P2-013 Extraer timeline de construccion de edificios
-- [ ] P2-014 Extraer timeline de investigaciones tecnologicas
-- [ ] P2-015 Extraer eventos de combate (daño, muertes, trades cuando aplique)
-- [ ] P2-016 Extraer eventos de economia (gather/deposit cuando sea posible)
-- [ ] P2-017 Extraer eventos de comandos del jugador (inputs/APM base)
-- [ ] P2-018 Extraer posiciones x/y de entidades y/o eventos
+- [~] P2-011 Extraer timeline de age ups (Feudal/Castle/Imperial) (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+- [~] P2-012 Extraer timeline de creacion de unidades (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+- [~] P2-013 Extraer timeline de construccion de edificios (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+- [~] P2-014 Extraer timeline de investigaciones tecnologicas (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+- [~] P2-015 Extraer eventos de combate (daño, muertes, trades cuando aplique) (Owner: Codex, baseline por clasificación de comandos en `aoe2stat/pipeline.py`)
+- [~] P2-016 Extraer eventos de economia (gather/deposit cuando sea posible) (Owner: Codex, baseline por `action_family=economy` en `aoe2stat/pipeline.py`)
+- [~] P2-017 Extraer eventos de comandos del jugador (inputs/APM base) (Owner: Codex, baseline `player_commands` en `aoe2stat/pipeline.py`)
+- [~] P2-018 Extraer posiciones x/y de entidades y/o eventos (Owner: Codex, en integración `spatial_events` en payload estructurado)
 - [ ] P2-019 Mapear IDs internos a nombres humanos (unidades, techs, edificios)
 - [ ] P2-020 Mantener tabla de mapeo versionada por patch
 - [ ] P2-021 Manejar eventos desconocidos sin romper pipeline
 - [ ] P2-022 Agregar flag `parse_warnings` por replay
 - [ ] P2-023 Agregar flag `parser_version` por output
 - [ ] P2-024 Agregar flag `source_lib_version` por output
-- [ ] P2-025 Escribir tests de regresion con replays reales pequeños
+- [~] P2-025 Escribir tests de regresion con replays reales pequeños (Owner: Codex, en implementación `tests/test_part2_regression.py`)
 
 ## Parte 3 - Esquema de datos y contratos
 
