@@ -131,6 +131,15 @@ Exportes desde GUI:
 - `Archivo -> Exportar gráfico (PNG)` para la pestaña activa
 - `Archivo -> Exportar datos filtrados (CSV)` para la pestaña activa
 
+Bookmarks de tiempo (pestaña `Mapa`):
+- `Agregar bookmark` en el tiempo actual del slider
+- doble click en bookmark para saltar al timestamp
+- `Eliminar bookmark` y `Limpiar bookmarks` para gestión rápida
+
+Reproducción de timeline (pestaña `Mapa`):
+- botón `Play/Pausa` para animar el tiempo
+- selector de velocidad (`0.5x`, `1x`, `2x`, `4x`)
+
 ### Mapa NxN (MVP)
 
 La pestaña `Mapa` ahora usa una grilla `NxN` para visualizar densidad espacial de acciones con:
@@ -158,4 +167,16 @@ Aplicar schema (ejemplo local con `psql`):
 
 ```bash
 psql "$DATABASE_URL" -f db/supabase_schema.sql
+```
+
+Ingest incremental de una replay (upsert por `match_id + parser_version`):
+
+```bash
+pip install psycopg2-binary
+python aoe2_ingest_postgres.py AgeIIDE_Replay_396581946.aoe2record \
+  --dsn "$DATABASE_URL" \
+  --parser-version sprint-1.1 \
+  --grid-size 32 \
+  --window-sec 10 \
+  --apply-schema
 ```
