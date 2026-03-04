@@ -1,0 +1,605 @@
+diff --git a/CHECKLIST_DESARROLLO.md b/CHECKLIST_DESARROLLO.md
+index 812f8e7..198cc0a 100644
+--- a/CHECKLIST_DESARROLLO.md
++++ b/CHECKLIST_DESARROLLO.md
+@@ -91,6 +91,14 @@ Fecha de inicio: 2026-03-03
+ - [x] P1-015 Definir interfaz estable para plugins de features (Owner: Codex, `FeaturePlugin` + `FeatureRegistry`)
+ - [x] P1-008 Reducir logica duplicada entre CLI, notebook y GUI (Owner: Codex, `ReplayAnalysisService` integrado en CLI e ingest + helper notebook)
+ - [x] P1-001 Separar claramente parser crudo, transformaciones y visualizacion (Owner: Codex, `aoe2stat/layers.py` + `docs/ARCHITECTURE_LAYERS.md`)
++- [x] P5-001 Definir sistema de coordenadas unico para todos los mapas (Owner: Codex, baseline `coordinate_system=aoe2_map_xy` en `aoe2stat/spatial.py`)
++- [x] P5-002 Normalizar coordenadas a `[0,1] x [0,1]` (Owner: Codex, `normalize_coordinates` en `aoe2stat/spatial.py`)
++- [x] P5-004 Generar heatmap temporal de unidades propias por celda (Owner: Codex, canal `own_units` en `build_perspective_spatial_frames`)
++- [x] P5-005 Generar heatmap temporal de unidades enemigas por celda (Owner: Codex, canal `enemy_units` en `build_perspective_spatial_frames`)
++- [x] P5-006 Generar heatmap temporal de edificios por celda (Owner: Codex, canal `buildings` en `build_perspective_spatial_frames`)
++- [x] P5-007 Generar heatmap de combates/daño por celda (Owner: Codex, canal `combat` baseline por comandos militares)
++- [x] P5-009 Generar mapas de riesgo por proximidad enemiga (Owner: Codex, canal `risk_proxy` con vecindad local)
++- [x] P5-013 Definir estructura de `spatial_frame` serializable a Parquet/NPZ (Owner: Codex, `SpatialFrameSpec` + `export_spatial_tensor_npz`)
+ 
+ ## Parte 0 - Alineacion funcional y alcance
+ 
+@@ -194,19 +202,19 @@ Fecha de inicio: 2026-03-03
+ 
+ ## Parte 5 - Representación espacial y abstracción del mapa
+ 
+-- [ ] P5-001 Definir sistema de coordenadas unico para todos los mapas
+-- [ ] P5-002 Normalizar coordenadas a `[0,1] x [0,1]`
++- [x] P5-001 Definir sistema de coordenadas unico para todos los mapas
++- [x] P5-002 Normalizar coordenadas a `[0,1] x [0,1]`
+ - [x] P5-003 Definir grillas base (16x16, 32x32, 64x64) y criterio de eleccion
+-- [ ] P5-004 Generar heatmap temporal de unidades propias por celda
+-- [ ] P5-005 Generar heatmap temporal de unidades enemigas por celda
+-- [ ] P5-006 Generar heatmap temporal de edificios por celda
+-- [ ] P5-007 Generar heatmap de combates/daño por celda
++- [x] P5-004 Generar heatmap temporal de unidades propias por celda
++- [x] P5-005 Generar heatmap temporal de unidades enemigas por celda
++- [x] P5-006 Generar heatmap temporal de edificios por celda
++- [x] P5-007 Generar heatmap de combates/daño por celda
+ - [ ] P5-008 Generar heatmap de control territorial aproximado
+-- [ ] P5-009 Generar mapas de riesgo por proximidad enemiga
++- [x] P5-009 Generar mapas de riesgo por proximidad enemiga
+ - [ ] P5-010 Generar trayectorias agregadas por tipo de unidad
+ - [ ] P5-011 Implementar downsampling temporal para secuencias largas
+ - [ ] P5-012 Implementar compresion de tensores espaciales
+-- [ ] P5-013 Definir estructura de `spatial_frame` serializable a Parquet/NPZ
++- [x] P5-013 Definir estructura de `spatial_frame` serializable a Parquet/NPZ
+ - [x] P5-014 Crear visualizador de grilla en GUI
+ - [x] P5-015 Crear reproductor temporal con scrubber de tiempo
+ - [ ] P5-016 Permitir superponer 2 jugadores en capas separadas
+@@ -237,6 +245,32 @@ Fecha de inicio: 2026-03-03
+ - [ ] P6-018 GUI: tema claro/oscuro sin romper legibilidad
+ - [ ] P6-019 GUI: manejo de errores amigable y accionable
+ - [ ] P6-020 GUI: tests basicos de smoke
++- [x] P6-021 GUI: consolidar pestañas y eliminar redundancia visual (Timeline/KPIs/Mapa como núcleo) (Owner: Codex, aplicado en `gui/window.py`)
++- [x] P6-022 GUI Timeline: serie temporal de recursos recolectados por tipo y jugador (Owner: Codex, `update_timeline`)
++- [x] P6-023 GUI Timeline: serie temporal de unidades creadas por tipo y jugador (Owner: Codex, `update_timeline`)
++- [x] P6-024 GUI Timeline: serie temporal de enemigos matados (real o proxy, con etiqueta de confianza) (Owner: Codex, proxy por comandos militares en `update_timeline`)
++- [x] P6-025 GUI Timeline: serie temporal de edificios construidos por jugador (Owner: Codex, `update_timeline`)
++- [x] P6-026 GUI Timeline: serie temporal de clicks/APM y comandos por familia (Owner: Codex, APM en `update_timeline`)
++- [ ] P6-027 GUI: modo cálculo bajo demanda por métrica (calcular una por una para ahorrar cómputo)
++- [ ] P6-028 GUI: caché incremental por replay + configuración de filtros para evitar recomputar todo
++- [ ] P6-029 GUI: panel comparativo económico/militar sincronizado en el tiempo
++
++## Parte 4B - KPIs economicos/militares pedidos (detalle operativo)
++
++- [ ] P4B-001 Definir KPI Idle Eco consolidado (TC idle + ociosidad de aldeanos)
++- [ ] P4B-002 Definir KPI Villager Labour Efficiency por ventana y acumulado
++- [ ] P4B-003 Definir versión proxy de Labour Efficiency cuando falte telemetría de trayectoria
++- [ ] P4B-004 Definir KPI de kills enemigas por tiempo con jerarquía de fuentes (real > proxy)
++- [ ] P4B-005 Definir KPI de producción militar neta (creación - pérdidas) por ventana
++- [ ] P4B-006 Definir semántica de intervalos de confianza y quality flag para KPIs operativos en GUI
++
++## Parte 5B - Trayectorias y eficiencia laboral (aldeanos)
++
++- [ ] P5B-001 Extraer trayectoria aproximada de aldeanos desde eventos de movimiento relevantes
++- [ ] P5B-002 Estimar distancia recorrida productiva vs no productiva por aldeano
++- [ ] P5B-003 Estimar tiempo en tránsito a recurso/drop-off por ventana
++- [ ] P5B-004 Construir métrica de eficiencia laboral basada en trayectorias (proxy validado)
++- [ ] P5B-005 Integrar eficiencia laboral en timeline y tabla de KPIs con etiqueta de confianza
+ 
+ ## Parte 7 - Procesamiento batch y escalabilidad
+ 
+diff --git a/README.md b/README.md
+index c9a9b0f..31bcba7 100644
+--- a/README.md
++++ b/README.md
+@@ -20,6 +20,7 @@ python aoe2_parser.py AgeIIDE_Replay_396581946.aoe2record \
+   --export-events-jsonl out/events.jsonl \
+   --export-idmap-csv out/idmap.csv \
+   --export-idmap-jsonl out/idmap.jsonl \
++  --export-unknown-csv out/unknown_events.csv \
+   --export-events-parquet out/events.parquet \
+   --export-spatial-csv out/spatial.csv \
+   --export-spatial-parquet out/spatial.parquet \
+@@ -54,6 +55,9 @@ npm run parse -- AgeIIDE_Replay_396581946.aoe2record --export-events-csv out/eve
+ # Export de mapeo IDs->nombres (unit/building/technology)
+ npm run parse -- AgeIIDE_Replay_396581946.aoe2record --export-idmap-csv out/idmap.csv --export-idmap-jsonl out/idmap.jsonl
+ 
++# Export de eventos desconocidos/no clasificados
++npm run parse -- AgeIIDE_Replay_396581946.aoe2record --export-unknown-csv out/unknown_events.csv
++
+ # Batch parse (equivalente a: python aoe2_batch.py ...)
+ npm run batch -- --input-dir ./replays --out-dir ./batch_out
+ ```
+@@ -147,6 +151,11 @@ Además del notebook, el repo incluye una pequeña librería y una GUI de escrit
+ 
+ Referencia de arquitectura por capas:
+ - `docs/ARCHITECTURE_LAYERS.md`
++
++Baseline espacial (Parte 5):
++- normalización `x,y -> [0,1]` (`normalize_coordinates`)
++- canales por perspectiva (`own_units`, `enemy_units`, `buildings`, `combat`, `risk_proxy`)
++- export tensor comprimido `NPZ` (`export_spatial_tensor_npz`)
+ - `gui/`: GUI con PySide6/PyQt5
+   - `run_gui.py`: punto de entrada
+   - `window.py`: ventana principal con pestañas (APM, Unidades, Idle TC, Recursos)
+diff --git a/aoe2stat/spatial.py b/aoe2stat/spatial.py
+index 0c8225f..c40b6e1 100644
+--- a/aoe2stat/spatial.py
++++ b/aoe2stat/spatial.py
+@@ -1,10 +1,50 @@
+ from __future__ import annotations
+ 
++import json
++from dataclasses import dataclass
++from pathlib import Path
++from typing import Any
++
++import numpy as np
+ import pandas as pd
+ 
+ from .pipeline import spatial_frames_from_events
+ 
+ 
++# Spatial channels used in the baseline perspective representation.
++SPATIAL_CHANNELS_V1 = [
++    "own_units",
++    "enemy_units",
++    "buildings",
++    "combat",
++    "risk_proxy",
++]
++
++
++@dataclass(frozen=True)
++class SpatialFrameSpec:
++    version: str
++    grid_size: int
++    window_sec: int
++    channels: list[str]
++    coordinate_system: str
++    normalization: str
++
++    def to_json(self) -> str:
++        return json.dumps(
++            {
++                "version": self.version,
++                "grid_size": self.grid_size,
++                "window_sec": self.window_sec,
++                "channels": self.channels,
++                "coordinate_system": self.coordinate_system,
++                "normalization": self.normalization,
++            },
++            ensure_ascii=True,
++            sort_keys=True,
++        )
++
++
+ def build_spatial_frames(
+     events_raw: pd.DataFrame,
+     map_dimension: float,
+@@ -18,3 +58,219 @@ def build_spatial_frames(
+         window_sec=window_sec,
+     )
+ 
++
++def normalize_coordinates(events_raw: pd.DataFrame, map_dimension: float) -> pd.DataFrame:
++    """Normalize x/y to [0,1] with a shared map coordinate system."""
++    if events_raw.empty:
++        out = events_raw.copy()
++        out["x_norm"] = pd.Series(dtype=float)
++        out["y_norm"] = pd.Series(dtype=float)
++        return out
++    d = float(map_dimension or 120.0)
++    d = d if d > 0 else 120.0
++    out = events_raw.copy()
++    x = out["x"].astype(float)
++    y = out["y"].astype(float)
++    out["x_norm"] = (x / d).clip(0.0, 1.0)
++    out["y_norm"] = (y / d).clip(0.0, 1.0)
++    return out
++
++
++def _to_cell_index(norm: pd.Series, grid_size: int) -> pd.Series:
++    n = max(4, int(grid_size))
++    cells = np.floor(norm.astype(float) * n).astype(int)
++    return cells.clip(0, n - 1)
++
++
++def _build_risk_proxy(enemy_grid: np.ndarray) -> np.ndarray:
++    """Local risk proxy from enemy density + Von Neumann neighborhood."""
++    g = enemy_grid.astype(float)
++    up = np.roll(g, -1, axis=0)
++    down = np.roll(g, 1, axis=0)
++    left = np.roll(g, -1, axis=1)
++    right = np.roll(g, 1, axis=1)
++    # Zero out wrapped borders after roll to avoid toroidal artifacts.
++    up[-1, :] = 0.0
++    down[0, :] = 0.0
++    left[:, -1] = 0.0
++    right[:, 0] = 0.0
++    return g + 0.5 * (up + down + left + right)
++
++
++def build_perspective_spatial_frames(
++    events_raw: pd.DataFrame,
++    map_dimension: float,
++    grid_size: int = 32,
++    window_sec: int = 10,
++) -> pd.DataFrame:
++    """Build per-player spatial channels over time bins.
++
++    Channels:
++    - own_units: unit creation/actions by the perspective player
++    - enemy_units: unit creation/actions by opponents
++    - buildings: building events (all players)
++    - combat: military events (all players)
++    - risk_proxy: neighborhood-smoothed enemy_units density
++    """
++    cols = [
++        "match_id",
++        "player_id",
++        "time_bin_sec",
++        "grid_size",
++        "window_sec",
++        "channel",
++        "cell_x",
++        "cell_y",
++        "value",
++        "frame_spec_json",
++    ]
++    if events_raw.empty:
++        return pd.DataFrame(columns=cols)
++
++    n = max(4, int(grid_size))
++    w = max(1, int(window_sec))
++    df = normalize_coordinates(events_raw, map_dimension=map_dimension)
++    df = df[df["x_norm"].notna() & df["y_norm"].notna()].copy()
++    if df.empty:
++        return pd.DataFrame(columns=cols)
++
++    df["cell_x"] = _to_cell_index(df["x_norm"], n)
++    df["cell_y"] = _to_cell_index(df["y_norm"], n)
++    df["time_bin_sec"] = (np.floor(df["time_sec"].astype(float) / w) * w).astype(int)
++    df["is_unit"] = df["event_type_semantic"].isin(["unit_train"])
++    df["is_building"] = df["event_type_semantic"].isin(["building_build"])
++    df["is_combat"] = df["action_family"].isin(["military"])
++
++    match_id = str(df["match_id"].iloc[0])
++    player_ids = sorted([int(p) for p in df["player_id"].dropna().unique().tolist() if int(p) > 0])
++    time_bins = sorted(df["time_bin_sec"].unique().tolist())
++
++    spec = SpatialFrameSpec(
++        version="spatial_frame_v1",
++        grid_size=n,
++        window_sec=w,
++        channels=list(SPATIAL_CHANNELS_V1),
++        coordinate_system="aoe2_map_xy",
++        normalization="x_norm=x/map_dimension, y_norm=y/map_dimension",
++    )
++    spec_json = spec.to_json()
++
++    out_rows: list[dict[str, Any]] = []
++    for pid in player_ids:
++        own = df[df["player_id"] == pid]
++        enemy = df[df["player_id"] != pid]
++
++        for t in time_bins:
++            own_t = own[own["time_bin_sec"] == t]
++            enemy_t = enemy[enemy["time_bin_sec"] == t]
++            all_t = df[df["time_bin_sec"] == t]
++
++            own_grid = np.zeros((n, n), dtype=float)
++            enemy_grid = np.zeros((n, n), dtype=float)
++            building_grid = np.zeros((n, n), dtype=float)
++            combat_grid = np.zeros((n, n), dtype=float)
++
++            for row in own_t[own_t["is_unit"]].itertuples(index=False):
++                own_grid[int(row.cell_y), int(row.cell_x)] += 1.0
++            for row in enemy_t[enemy_t["is_unit"]].itertuples(index=False):
++                enemy_grid[int(row.cell_y), int(row.cell_x)] += 1.0
++            for row in all_t[all_t["is_building"]].itertuples(index=False):
++                building_grid[int(row.cell_y), int(row.cell_x)] += 1.0
++            for row in all_t[all_t["is_combat"]].itertuples(index=False):
++                combat_grid[int(row.cell_y), int(row.cell_x)] += 1.0
++
++            risk_grid = _build_risk_proxy(enemy_grid)
++            channel_to_grid = {
++                "own_units": own_grid,
++                "enemy_units": enemy_grid,
++                "buildings": building_grid,
++                "combat": combat_grid,
++                "risk_proxy": risk_grid,
++            }
++
++            for channel, grid in channel_to_grid.items():
++                ys, xs = np.nonzero(grid > 0)
++                for y, x in zip(ys.tolist(), xs.tolist()):
++                    out_rows.append(
++                        {
++                            "match_id": match_id,
++                            "player_id": int(pid),
++                            "time_bin_sec": int(t),
++                            "grid_size": int(n),
++                            "window_sec": int(w),
++                            "channel": channel,
++                            "cell_x": int(x),
++                            "cell_y": int(y),
++                            "value": float(grid[y, x]),
++                            "frame_spec_json": spec_json,
++                        }
++                    )
++
++    if not out_rows:
++        return pd.DataFrame(columns=cols)
++    return pd.DataFrame(out_rows, columns=cols)
++
++
++def spatial_frames_to_tensor(
++    perspective_frames: pd.DataFrame,
++    player_id: int,
++) -> tuple[np.ndarray, dict[str, Any]]:
++    """Convert perspective frames to dense tensor [T, C, H, W]."""
++    if perspective_frames.empty:
++        return np.zeros((0, len(SPATIAL_CHANNELS_V1), 0, 0), dtype=np.float32), {
++            "time_bins": [],
++            "channels": list(SPATIAL_CHANNELS_V1),
++            "grid_size": 0,
++            "player_id": int(player_id),
++        }
++    df = perspective_frames[perspective_frames["player_id"] == int(player_id)].copy()
++    if df.empty:
++        return np.zeros((0, len(SPATIAL_CHANNELS_V1), 0, 0), dtype=np.float32), {
++            "time_bins": [],
++            "channels": list(SPATIAL_CHANNELS_V1),
++            "grid_size": int(perspective_frames["grid_size"].iloc[0]),
++            "player_id": int(player_id),
++        }
++
++    n = int(df["grid_size"].iloc[0])
++    time_bins = sorted(df["time_bin_sec"].unique().tolist())
++    channel_index = {c: i for i, c in enumerate(SPATIAL_CHANNELS_V1)}
++    tensor = np.zeros((len(time_bins), len(SPATIAL_CHANNELS_V1), n, n), dtype=np.float32)
++
++    t_index = {t: i for i, t in enumerate(time_bins)}
++    for r in df.itertuples(index=False):
++        if r.channel not in channel_index:
++            continue
++        ti = t_index[int(r.time_bin_sec)]
++        ci = channel_index[str(r.channel)]
++        y = int(r.cell_y)
++        x = int(r.cell_x)
++        if 0 <= y < n and 0 <= x < n:
++            tensor[ti, ci, y, x] = float(r.value)
++
++    meta = {
++        "time_bins": time_bins,
++        "channels": list(SPATIAL_CHANNELS_V1),
++        "grid_size": n,
++        "player_id": int(player_id),
++    }
++    return tensor, meta
++
++
++def export_spatial_tensor_npz(
++    perspective_frames: pd.DataFrame,
++    player_id: int,
++    output_path: str | Path,
++) -> None:
++    tensor, meta = spatial_frames_to_tensor(perspective_frames, player_id=player_id)
++    out = Path(output_path)
++    out.parent.mkdir(parents=True, exist_ok=True)
++    np.savez_compressed(
++        out,
++        tensor=tensor,
++        time_bins=np.array(meta["time_bins"], dtype=np.int32),
++        channels=np.array(meta["channels"], dtype=object),
++        grid_size=np.array([meta["grid_size"]], dtype=np.int32),
++        player_id=np.array([meta["player_id"]], dtype=np.int32),
++    )
++
+diff --git a/gui/window.py b/gui/window.py
+index 1bc273e..a10edb1 100644
+--- a/gui/window.py
++++ b/gui/window.py
+@@ -191,23 +191,21 @@ class MainWindow(QMainWindow):
+         self.setCentralWidget(self.tabs)
+         self._map_cache = None
+ 
+-        # Tabs
+-        self.tab_apm = QWidget(); self.tabs.addTab(self.tab_apm, "APM")
+-        self.tab_units = QWidget(); self.tabs.addTab(self.tab_units, "Unidades")
+-        self.tab_idle = QWidget(); self.tabs.addTab(self.tab_idle, "Idle TC")
+-        self.tab_res = QWidget(); self.tabs.addTab(self.tab_res, "Recursos")
+-        self.tab_stock = QWidget(); self.tabs.addTab(self.tab_stock, "Stock Total")
+-        self.tab_score = QWidget(); self.tabs.addTab(self.tab_score, "Ventaja")
++        # Tabs (minimal non-redundant UX): Timeline + KPIs + Mapa.
++        self.tab_timeline = QWidget(); self.tabs.addTab(self.tab_timeline, "Timeline")
+         self.tab_kpis = QWidget(); self.tabs.addTab(self.tab_kpis, "KPIs")
+         self.tab_map = QWidget(); self.tabs.addTab(self.tab_map, "Mapa")
+ 
++        # Legacy placeholders kept to avoid breaking helper branches.
++        self.tab_apm = QWidget()
++        self.tab_units = QWidget()
++        self.tab_idle = QWidget()
++        self.tab_res = QWidget()
++        self.tab_stock = QWidget()
++        self.tab_score = QWidget()
++
+         self._setup_menu()
+-        self._setup_apm_tab()
+-        self._setup_units_tab()
+-        self._setup_idle_tab()
+-        self._setup_res_tab()
+-        self._setup_stock_tab()
+-        self._setup_score_tab()
++        self._setup_timeline_tab()
+         self._setup_kpis_tab()
+         self._setup_map_tab()
+         self._apply_base_layouts()
+@@ -340,6 +338,47 @@ class MainWindow(QMainWindow):
+         layout = QVBoxLayout(); self.tab_stock.setLayout(layout)
+         self.stock_canvas = PlotCanvas(); layout.addWidget(self.stock_canvas)
+ 
++    def _setup_timeline_tab(self):
++        layout = QVBoxLayout(); self.tab_timeline.setLayout(layout)
++        controls = QHBoxLayout(); layout.addLayout(controls)
++        controls.addWidget(QLabel("Serie:"))
++        self.timeline_mode = QComboBox()
++        self.timeline_mode.addItems([
++            "Recursos colectados",
++            "Unidades creadas",
++            "Enemigos matados (proxy)",
++            "Edificios construidos",
++            "Clicks/APM",
++        ])
++        self.timeline_mode.currentTextChanged.connect(self.update_timeline)
++        controls.addWidget(self.timeline_mode)
++        controls.addWidget(QLabel("Recurso:"))
++        self.timeline_resource = QComboBox()
++        self.timeline_resource.addItems(["food", "wood", "gold", "stone"])
++        self.timeline_resource.currentTextChanged.connect(self.update_timeline)
++        controls.addWidget(self.timeline_resource)
++        controls.addWidget(QLabel("Unidad:"))
++        self.timeline_unit = QComboBox()
++        self.timeline_unit.addItems(list(self.unit_patterns.keys()))
++        self.timeline_unit.currentTextChanged.connect(self.update_timeline)
++        controls.addWidget(self.timeline_unit)
++        controls.addWidget(QLabel("Ventana (s):"))
++        self.timeline_window = QComboBox()
++        self.timeline_window.addItems(["15", "30", "45", "60", "90", "120"])
++        self.timeline_window.setCurrentText("60")
++        self.timeline_window.currentTextChanged.connect(self.update_timeline)
++        controls.addWidget(self.timeline_window)
++        controls.addStretch(1)
++
++        layout.addWidget(QLabel("Jugadores a mostrar:"))
++        self.timeline_players_list = QListWidget()
++        self.timeline_players_list.setSelectionMode(QListWidget.MultiSelection)
++        self.timeline_players_list.itemSelectionChanged.connect(self.update_timeline)
++        layout.addWidget(self.timeline_players_list)
++
++        self.timeline_canvas = PlotCanvas()
++        layout.addWidget(self.timeline_canvas)
++
+     def _setup_map_tab(self):
+         root = QHBoxLayout(); self.tab_map.setLayout(root)
+ 
+@@ -1497,6 +1536,107 @@ class MainWindow(QMainWindow):
+             QMessageBox.critical(self, "Error", f"No se pudo exportar el CSV:\n{e}")
+ 
+     # ---- Update plots ----
++    def update_timeline(self):
++        if not self.match:
++            return
++        mode = self.timeline_mode.currentText()
++        w = int(self.timeline_window.currentText())
++        selected = self._selected_players(getattr(self, "timeline_players_list", None))
++        ts = None
++        title = ""
++        ylabel = ""
++
++        if mode == "Recursos colectados":
++            if not self.replay_path:
++                self.export_cache["timeline"] = {"type": "none"}
++                self.timeline_canvas.draw_message("Abrí un replay para ver recursos recolectados")
++                return
++            res = self.timeline_resource.currentText()
++            totals = resource_totals_postgame(self.replay_path)
++            ts = resource_cumulative_timeseries(self.match, totals, resource=res, window_sec=w)
++            title = f"Recursos recolectados acumulados ({res}) — ventana {w}s"
++            ylabel = f"{res} acumulado"
++        elif mode == "Unidades creadas":
++            unit_name = self.timeline_unit.currentText()
++            pattern = self.unit_patterns[unit_name]
++            ts = unit_created_timeseries(self.match, pattern, window_sec=w)
++            title = f"Unidades creadas ({unit_name}) — ventana {w}s"
++            ylabel = f"{unit_name} creadas"
++        elif mode == "Enemigos matados (proxy)":
++            # Proxy based on offensive military command volume when kill telemetry is unavailable.
++            if self.events_df is None or self.events_df.empty:
++                self.export_cache["timeline"] = {"type": "none"}
++                self.timeline_canvas.draw_message("Sin eventos para estimar matados (proxy)")
++                return
++            df = self.events_df.copy()
++            atk_mask = (
++                (df["action_family"] == "military")
++                | df["action_type"].astype(str).str.contains("ATTACK|PATROL|DE_ATTACK_MOVE|STANCE|SPECIAL", case=False, regex=True)
++            )
++            df = df[atk_mask & df["player_id"].notna()]
++            if df.empty:
++                self.export_cache["timeline"] = {"type": "none"}
++                self.timeline_canvas.draw_message("Sin eventos militares para estimar matados (proxy)")
++                return
++            max_t = float(df["time_sec"].max())
++            bins = np.arange(0, max_t + w, w)
++            out = {}
++            for pid in sorted(df["player_id"].astype(int).unique().tolist()):
++                mask = df["player_id"].astype(int) == int(pid)
++                counts, _ = np.histogram(df.loc[mask, "time_sec"].astype(float), bins=bins)
++                out[int(pid)] = np.cumsum(counts.astype(float))
++            import pandas as pd
++            ts = pd.DataFrame(out, index=bins[:-1])
++            ts.index.name = "time_sec"
++            title = f"Enemigos matados (proxy comandos militares acumulados) — ventana {w}s"
++            ylabel = "Matados proxy (acum.)"
++        elif mode == "Edificios construidos":
++            if self.events_df is None or self.events_df.empty:
++                self.export_cache["timeline"] = {"type": "none"}
++                self.timeline_canvas.draw_message("Sin eventos para edificios construidos")
++                return
++            df = self.events_df.copy()
++            df = df[df["action_type"].astype(str).isin(["BUILD", "WALL"]) & df["player_id"].notna()]
++            if df.empty:
++                self.export_cache["timeline"] = {"type": "none"}
++                self.timeline_canvas.draw_message("Sin eventos BUILD/WALL para este replay")
++                return
++            max_t = float(df["time_sec"].max())
++            bins = np.arange(0, max_t + w, w)
++            out = {}
++            for pid in sorted(df["player_id"].astype(int).unique().tolist()):
++                mask = df["player_id"].astype(int) == int(pid)
++                counts, _ = np.histogram(df.loc[mask, "time_sec"].astype(float), bins=bins)
++                out[int(pid)] = np.cumsum(counts.astype(float))
++            import pandas as pd
++            ts = pd.DataFrame(out, index=bins[:-1])
++            ts.index.name = "time_sec"
++            title = f"Edificios construidos acumulados — ventana {w}s"
++            ylabel = "Edificios construidos (acum.)"
++        else:  # Clicks/APM
++            ts = apm_timeseries(self.match, window_sec=w)
++            title = f"Clicks/APM — ventana {w}s"
++            ylabel = "APM"
++
++        if ts is None or ts.empty:
++            self.export_cache["timeline"] = {"type": "none"}
++            self.timeline_canvas.draw_message("Sin datos para la serie seleccionada")
++            return
++        if selected:
++            keep = [pid for pid in ts.columns if int(pid) in selected]
++            if keep:
++                ts = ts[keep]
++        if ts.empty:
++            self.export_cache["timeline"] = {"type": "none"}
++            self.timeline_canvas.draw_message("Sin jugadores seleccionados con datos")
++            return
++
++        series = {next((p.name for p in self.match.players if int(p.number) == int(pid)), f"P{int(pid)}"): ts[pid].values for pid in ts.columns}
++        self._set_line_export_cache("timeline", ts.index / 60.0, series, "time_min")
++        colors = self._player_color_map()
++        self.timeline_canvas.plot_lines(ts.index / 60.0, series, "Tiempo (min)", ylabel, title, colors)
++        self._overlay_important_events(self.timeline_canvas)
++
+     def update_apm(self):
+         if not self.match:
+             return
+@@ -1972,18 +2112,8 @@ class MainWindow(QMainWindow):
+             self.map_playback_is_running = False
+             self.map_play_btn.setText("Play")
+             self.map_playback_timer.stop()
+-        if w is self.tab_apm:
+-            self.update_apm()
+-        elif w is self.tab_units:
+-            self.update_units()
+-        elif w is self.tab_idle:
+-            self.update_idle()
+-        elif w is self.tab_res:
+-            self.update_res()
+-        elif w is self.tab_stock:
+-            self.update_stock()
+-        elif w is self.tab_score:
+-            self.update_score()
++        if w is self.tab_timeline:
++            self.update_timeline()
+         elif w is self.tab_kpis:
+             self.update_kpis()
+         elif w is self.tab_map:

@@ -244,11 +244,11 @@ Fecha de inicio: 2026-03-03
 - [x] P6-027 GUI: cálculo bajo demanda por serie (botón `Calcular`) + modo auto opcional (Owner: Codex, implementado en tab `Timeline`)
 - [x] P6-028 GUI: cachear resultados temporales por replay/filtros para evitar recomputo (Owner: Codex, `timeline_cache`)
 - [ ] P6-029 GUI: panel comparativo sincronizado para dos jugadores (económico + militar) en la misma vista
-- [~] P6-030 WEB GUI: corregir contraste tipográfico en modo oscuro (menús, labels, inputs, tablas y tooltips) (Owner: Codex, en implementación)
-- [~] P6-031 WEB GUI: rehacer tooltip espacial para fijarlo por celda/objetos y evitar desplazamiento errático (Owner: Codex, en implementación)
-- [~] P6-032 WEB GUI: expandir capa de edificios para incluir todos los tipos parseables (casa, barracks, mercado, murallas, torres, etc.) (Owner: Codex, en implementación)
-- [~] P6-033 WEB GUI: agregar overlay opcional de posiciones/eventos de unidades (Owner: Codex, en implementación)
-- [~] P6-034 WEB GUI: reestructurar sidebar con secciones colapsables y scroll usable (Owner: Codex, en implementación)
+- [x] P6-030 WEB GUI: corregir contraste tipográfico en modo oscuro (menús, labels, inputs, tablas y tooltips) (Owner: Codex, implementado en `aoe2_web/static/index.html` + fix menubar Qt en `gui/window.py`)
+- [x] P6-031 WEB GUI: rehacer tooltip espacial para fijarlo por celda/objetos y evitar desplazamiento errático (Owner: Codex, implementado por celda en `aoe2_web/static/index.html`)
+- [~] P6-032 WEB GUI: expandir capa de edificios para incluir todos los tipos parseables (casa, barracks, mercado, murallas, torres, etc.) (Owner: Codex, extracción ampliada en `aoe2_web/app.py`; pendiente validar cobertura por replay)
+- [x] P6-033 WEB GUI: agregar overlay opcional de posiciones/eventos de unidades (Owner: Codex, `show_units` en API + render en `aoe2_web/static/index.html`)
+- [x] P6-034 WEB GUI: reestructurar sidebar con secciones colapsables y scroll usable (Owner: Codex, implementado con `details` + scroll en `aoe2_web/static/index.html`)
 - [ ] P6-016 GUI: comparar dos jugadores sincronizados
 - [ ] P6-017 GUI: comparar dos partidas sincronizadas por tiempo relativo
 - [ ] P6-018 GUI: tema claro/oscuro sin romper legibilidad

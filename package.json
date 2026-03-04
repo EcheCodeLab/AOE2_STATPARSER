@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "node scripts/dev.js gui.run_gui",
     "gui": "node scripts/dev.js gui.run_gui",
+    "web": "node scripts/dev.js aoe2_web.app",
+    "web:api": "node scripts/dev.js aoe2_web.app",
     "parse": "node scripts/dev.js aoe2_parser.py",
     "parse:download": "node scripts/dev.js aoe2_parser.py --download",
     "batch": "node scripts/dev.js aoe2_batch.py"

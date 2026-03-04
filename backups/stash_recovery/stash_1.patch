@@ -1,0 +1,746 @@
+diff --git a/CHECKLIST_DESARROLLO.md b/CHECKLIST_DESARROLLO.md
+index 812f8e7..e408e04 100644
+--- a/CHECKLIST_DESARROLLO.md
++++ b/CHECKLIST_DESARROLLO.md
+@@ -48,16 +48,16 @@ Fecha de inicio: 2026-03-03
+ - [x] P6-013 GUI: bookmarks de timestamps relevantes (Owner: Codex, alta/salto/eliminación/limpieza en tab Mapa)
+ - [x] P6-014 GUI: exportar gráfico y exportar datos filtrados (Owner: Codex, export PNG/CSV por pestaña activa)
+ - [x] P6-015 GUI: reproducir timeline a velocidad variable (Owner: Codex, play/pausa + velocidades 0.5x/1x/2x/4x)
+-- [~] P2-004 Diseñar `RawSnapshot` canónico para estados por tick/ventana (Owner: Codex, en implementación en `aoe2stat/pipeline.py`)
+-- [~] P2-011 Extraer timeline de age ups (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+-- [~] P2-012 Extraer timeline de creacion de unidades (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+-- [~] P2-013 Extraer timeline de construccion de edificios (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+-- [~] P2-014 Extraer timeline de investigaciones tecnologicas (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+-- [~] P2-015 Extraer eventos de combate (daño, muertes, trades cuando aplique) (Owner: Codex, baseline por clasificación de comandos en `aoe2stat/pipeline.py`)
+-- [~] P2-016 Extraer eventos de economia (gather/deposit cuando sea posible) (Owner: Codex, baseline por `action_family=economy` en `aoe2stat/pipeline.py`)
+-- [~] P2-017 Extraer eventos de comandos del jugador (inputs/APM base) (Owner: Codex, baseline `player_commands` en `aoe2stat/pipeline.py`)
+-- [~] P2-018 Extraer posiciones x/y de entidades y/o eventos (Owner: Codex, en integración `spatial_events` en payload estructurado)
+-- [~] P2-025 Escribir tests de regresion con replays reales pequeños (Owner: Codex, en implementación `tests/test_part2_regression.py`)
++- [x] P2-004 Diseñar `RawSnapshot` canónico para estados por tick/ventana (Owner: Codex, `aoe2stat/pipeline.py::extract_raw_snapshots`)
++- [x] P2-011 Extraer timeline de age ups (Owner: Codex, `aoe2stat/pipeline.py::extract_base_timelines` + `timeline_counts`)
++- [x] P2-012 Extraer timeline de creacion de unidades (Owner: Codex, `aoe2stat/pipeline.py::extract_base_timelines` + `timeline_counts`)
++- [x] P2-013 Extraer timeline de construccion de edificios (Owner: Codex, `aoe2stat/pipeline.py::extract_base_timelines` + `timeline_counts`)
++- [x] P2-014 Extraer timeline de investigaciones tecnologicas (Owner: Codex, `aoe2stat/pipeline.py::extract_base_timelines` + `timeline_counts`)
++- [x] P2-015 Extraer eventos de combate (daño, muertes, trades cuando aplique) (Owner: Codex, baseline comandos militares en `aoe2stat/pipeline.py::extract_event_views`)
++- [x] P2-016 Extraer eventos de economia (gather/deposit cuando sea posible) (Owner: Codex, baseline `action_family=economy` en `aoe2stat/pipeline.py::extract_event_views`)
++- [x] P2-017 Extraer eventos de comandos del jugador (inputs/APM base) (Owner: Codex, `player_commands` en `aoe2stat/pipeline.py::extract_event_views`)
++- [x] P2-018 Extraer posiciones x/y de entidades y/o eventos (Owner: Codex, `spatial_events` + campos `x/y` en eventos)
++- [x] P2-025 Escribir tests de regresion con replays reales pequeños (Owner: Codex, `tests/test_part2_regression.py`)
+ - [x] P6-012 GUI: overlay de eventos sobre series de tiempo (Owner: Codex, toggle global en menú Ver)
+ - [x] P7-003 Implementar runner batch por IDs (descarga + parse) (Owner: Codex, extendido con fetch reciente por jugador alias/profile_id)
+ - [x] P5-003 Definir grillas base (16x16, 32x32, 64x64) y criterio de eleccion (Owner: Codex, MVP con selector en GUI)
+@@ -128,28 +128,28 @@ Fecha de inicio: 2026-03-03
+ - [x] P2-001 Inventariar todo lo que hoy ya extrae `mgz.summary` (Owner: Codex, `docs/PARSER_SOURCE_INVENTORY.md`)
+ - [x] P2-002 Inventariar todo lo que hoy ya extrae `mgz.fast` (Owner: Codex, `docs/PARSER_SOURCE_INVENTORY.md`)
+ - [x] P2-003 Diseñar `RawEvent` canónico: `match_id, t_ms, player, event_type, payload`
+-- [~] P2-004 Diseñar `RawSnapshot` canónico para estados por tick/ventana (Owner: Codex, en implementación en `aoe2stat/pipeline.py`)
++- [x] P2-004 Diseñar `RawSnapshot` canónico para estados por tick/ventana (Owner: Codex, `aoe2stat/pipeline.py::extract_raw_snapshots`)
+ - [x] P2-005 Unificar reloj temporal (ms, segundos de juego, tiempo real)
+-- [ ] P2-006 Resolver offsets de inicio/fin para partidas incompletas
+-- [ ] P2-007 Manejar archivos corruptos o truncados con degradación controlada
++- [x] P2-006 Resolver offsets de inicio/fin para partidas incompletas (Owner: Codex, `aoe2stat/layers.py::_compute_offsets`)
++- [x] P2-007 Manejar archivos corruptos o truncados con degradación controlada (Owner: Codex, fallback controlado en `aoe2_parser.py`)
+ - [ ] P2-008 Manejar compresiones/formatos alternativos si aparecen
+ - [x] P2-009 Extraer metadata completa de partida (mapa, modo, patch, seeds si existen) (Owner: Codex, enriquecido en `aoe2stat/pipeline.py::build_match_meta`)
+ - [x] P2-010 Extraer metadata completa de jugadores (civ, team, color, rating si disponible) (Owner: Codex, enriquecido en `aoe2stat/pipeline.py::build_match_meta`)
+-- [~] P2-011 Extraer timeline de age ups (Feudal/Castle/Imperial) (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+-- [~] P2-012 Extraer timeline de creacion de unidades (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+-- [~] P2-013 Extraer timeline de construccion de edificios (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+-- [~] P2-014 Extraer timeline de investigaciones tecnologicas (Owner: Codex, en integración `aoe2stat/pipeline.py` + payload estructurado)
+-- [~] P2-015 Extraer eventos de combate (daño, muertes, trades cuando aplique) (Owner: Codex, baseline por clasificación de comandos en `aoe2stat/pipeline.py`)
+-- [~] P2-016 Extraer eventos de economia (gather/deposit cuando sea posible) (Owner: Codex, baseline por `action_family=economy` en `aoe2stat/pipeline.py`)
+-- [~] P2-017 Extraer eventos de comandos del jugador (inputs/APM base) (Owner: Codex, baseline `player_commands` en `aoe2stat/pipeline.py`)
+-- [~] P2-018 Extraer posiciones x/y de entidades y/o eventos (Owner: Codex, en integración `spatial_events` en payload estructurado)
+-- [ ] P2-019 Mapear IDs internos a nombres humanos (unidades, techs, edificios)
+-- [ ] P2-020 Mantener tabla de mapeo versionada por patch
+-- [ ] P2-021 Manejar eventos desconocidos sin romper pipeline
+-- [ ] P2-022 Agregar flag `parse_warnings` por replay
+-- [ ] P2-023 Agregar flag `parser_version` por output
+-- [ ] P2-024 Agregar flag `source_lib_version` por output
+-- [~] P2-025 Escribir tests de regresion con replays reales pequeños (Owner: Codex, en implementación `tests/test_part2_regression.py`)
++- [x] P2-011 Extraer timeline de age ups (Feudal/Castle/Imperial) (Owner: Codex, `aoe2stat/pipeline.py::extract_base_timelines` + `timeline_counts`)
++- [x] P2-012 Extraer timeline de creacion de unidades (Owner: Codex, `aoe2stat/pipeline.py::extract_base_timelines` + `timeline_counts`)
++- [x] P2-013 Extraer timeline de construccion de edificios (Owner: Codex, `aoe2stat/pipeline.py::extract_base_timelines` + `timeline_counts`)
++- [x] P2-014 Extraer timeline de investigaciones tecnologicas (Owner: Codex, `aoe2stat/pipeline.py::extract_base_timelines` + `timeline_counts`)
++- [x] P2-015 Extraer eventos de combate (daño, muertes, trades cuando aplique) (Owner: Codex, baseline comandos militares en `aoe2stat/pipeline.py::extract_event_views`)
++- [x] P2-016 Extraer eventos de economia (gather/deposit cuando sea posible) (Owner: Codex, baseline `action_family=economy` en `aoe2stat/pipeline.py::extract_event_views`)
++- [x] P2-017 Extraer eventos de comandos del jugador (inputs/APM base) (Owner: Codex, `player_commands` en `aoe2stat/pipeline.py::extract_event_views`)
++- [x] P2-018 Extraer posiciones x/y de entidades y/o eventos (Owner: Codex, `spatial_events` + campos `x/y` en eventos)
++- [x] P2-019 Mapear IDs internos a nombres humanos (unidades, techs, edificios) (Owner: Codex, `aoe2stat/pipeline.py::extract_id_mappings`)
++- [x] P2-020 Mantener tabla de mapeo versionada por patch (Owner: Codex, `patch_version` en idmap + `scripts/p2_merge_idmaps.py`)
++- [x] P2-021 Manejar eventos desconocidos sin romper pipeline (Owner: Codex, `event_type_semantic=other` + warning no bloqueante)
++- [x] P2-022 Agregar flag `parse_warnings` por replay (Owner: Codex, salida `structured.parse_warnings`)
++- [x] P2-023 Agregar flag `parser_version` por output (Owner: Codex, salida `structured.parser_version`)
++- [x] P2-024 Agregar flag `source_lib_version` por output (Owner: Codex, salida `structured.source_lib_version`)
++- [x] P2-025 Escribir tests de regresion con replays reales pequeños (Owner: Codex, `tests/test_part2_regression.py`)
+ 
+ ## Parte 3 - Esquema de datos y contratos
+ 
+diff --git a/aoe2_cli.py b/aoe2_cli.py
+index d689f95..1c7ae68 100644
+--- a/aoe2_cli.py
++++ b/aoe2_cli.py
+@@ -17,9 +17,11 @@ from aoe2stat.pipeline import (
+     export_id_mappings,
+     export_events,
+     export_spatial_frames,
++    export_unknown_events,
+     extract_base_timelines,
+     extract_id_mappings,
+     extract_raw_events,
++    extract_unknown_events,
+     source_lib_version,
+     spatial_frames_from_events,
+ )
+@@ -162,6 +164,9 @@ def cmd_parse(args: argparse.Namespace) -> dict[str, Any]:
+         or args.export_idmap_csv
+         or args.export_idmap_jsonl
+         or args.export_idmap_parquet
++        or args.export_unknown_csv
++        or args.export_unknown_jsonl
++        or args.export_unknown_parquet
+     )
+     if not wants_structured:
+         return output
+@@ -222,6 +227,21 @@ def cmd_parse(args: argparse.Namespace) -> dict[str, Any]:
+         output["structured"]["spatial_parquet"] = args.export_spatial_parquet
+         output["structured"]["grid_size"] = int(args.grid_size)
+         output["structured"]["window_sec"] = int(args.window_sec)
++    if args.export_unknown_csv or args.export_unknown_jsonl or args.export_unknown_parquet:
++        unknown_df = extract_unknown_events(events_df)
++        export_unknown_events(
++            unknown_df,
++            csv_path=args.export_unknown_csv,
++            jsonl_path=args.export_unknown_jsonl,
++            parquet_path=args.export_unknown_parquet,
++        )
++        output["structured"]["unknown_events_count"] = int(len(unknown_df))
++        output["structured"]["unknown_action_type_counts"] = (
++            unknown_df["action_type"].value_counts().to_dict() if not unknown_df.empty else {}
++        )
++        output["structured"]["unknown_csv"] = args.export_unknown_csv
++        output["structured"]["unknown_jsonl"] = args.export_unknown_jsonl
++        output["structured"]["unknown_parquet"] = args.export_unknown_parquet
+     return output
+ 
+ 
+@@ -406,6 +426,9 @@ def build_parser() -> argparse.ArgumentParser:
+     parse_p.add_argument("--export-idmap-csv")
+     parse_p.add_argument("--export-idmap-jsonl")
+     parse_p.add_argument("--export-idmap-parquet")
++    parse_p.add_argument("--export-unknown-csv")
++    parse_p.add_argument("--export-unknown-jsonl")
++    parse_p.add_argument("--export-unknown-parquet")
+     parse_p.add_argument("--grid-size", type=int, default=32)
+     parse_p.add_argument("--window-sec", type=int, default=10)
+     _add_output_args(parse_p, hidden=True)
+diff --git a/aoe2_parser.py b/aoe2_parser.py
+index 834d8b9..3fd8fd9 100644
+--- a/aoe2_parser.py
++++ b/aoe2_parser.py
+@@ -52,6 +52,30 @@ def main() -> None:
+         "--export-idmap-parquet",
+         help="Export replay-derived id mapping table to Parquet path.",
+     )
++    parser.add_argument(
++        "--export-snapshots-csv",
++        help="Export canonical raw snapshots to CSV path.",
++    )
++    parser.add_argument(
++        "--export-snapshots-jsonl",
++        help="Export canonical raw snapshots to JSONL path.",
++    )
++    parser.add_argument(
++        "--export-snapshots-parquet",
++        help="Export canonical raw snapshots to Parquet path.",
++    )
++    parser.add_argument(
++        "--export-unknown-csv",
++        help="Export unknown/unclassified events to CSV path.",
++    )
++    parser.add_argument(
++        "--export-unknown-jsonl",
++        help="Export unknown/unclassified events to JSONL path.",
++    )
++    parser.add_argument(
++        "--export-unknown-parquet",
++        help="Export unknown/unclassified events to Parquet path.",
++    )
+     parser.add_argument(
+         "--grid-size",
+         type=int,
+@@ -87,6 +111,12 @@ def main() -> None:
+         or args.export_idmap_csv
+         or args.export_idmap_jsonl
+         or args.export_idmap_parquet
++        or args.export_snapshots_csv
++        or args.export_snapshots_jsonl
++        or args.export_snapshots_parquet
++        or args.export_unknown_csv
++        or args.export_unknown_jsonl
++        or args.export_unknown_parquet
+     )
+     if wants_structured:
+         transformer = TransformLayer()
+@@ -106,9 +136,15 @@ def main() -> None:
+                 idmap_csv=args.export_idmap_csv,
+                 idmap_jsonl=args.export_idmap_jsonl,
+                 idmap_parquet=args.export_idmap_parquet,
++                unknown_csv=args.export_unknown_csv,
++                unknown_jsonl=args.export_unknown_jsonl,
++                unknown_parquet=args.export_unknown_parquet,
+                 grid_size=int(args.grid_size),
+                 window_sec=int(args.window_sec),
+                 replay_path=replay_path,
++                snapshots_csv=args.export_snapshots_csv,
++                snapshots_jsonl=args.export_snapshots_jsonl,
++                snapshots_parquet=args.export_snapshots_parquet,
+             )
+         except Exception as exc:
+             # Controlled degradation for corrupt/truncated files (P2-007):
+diff --git a/aoe2stat/layers.py b/aoe2stat/layers.py
+index e83f202..b0456cd 100644
+--- a/aoe2stat/layers.py
++++ b/aoe2stat/layers.py
+@@ -14,8 +14,14 @@ from .pipeline import (
+     build_parse_warnings,
+     export_events,
+     export_id_mappings,
++    export_raw_snapshots,
+     export_spatial_frames,
++    export_unknown_events,
++    extract_base_timelines,
++    extract_event_views,
+     extract_id_mappings,
++    extract_raw_snapshots,
++    extract_unknown_events,
+     source_lib_version,
+ )
+ from .services import ReplayAnalysisService
+@@ -173,9 +179,15 @@ class PresentationLayer:
+         idmap_csv: str | None,
+         idmap_jsonl: str | None,
+         idmap_parquet: str | None,
++        unknown_csv: str | None,
++        unknown_jsonl: str | None,
++        unknown_parquet: str | None,
+         grid_size: int,
+         window_sec: int,
+         replay_path: str | Path,
++        snapshots_csv: str | None = None,
++        snapshots_jsonl: str | None = None,
++        snapshots_parquet: str | None = None,
+     ) -> dict[str, Any]:
+         meta = bundle.match_meta
+         export_events(
+@@ -198,6 +210,25 @@ class PresentationLayer:
+             "features": bundle.features,
+             "validation": bundle.validation,
+         }
++        timelines = extract_base_timelines(bundle.events_raw)
++        payload["timeline_counts"] = {k: int(len(v)) for k, v in timelines.items()}
++
++        event_views = extract_event_views(bundle.events_raw)
++        payload["event_view_counts"] = {k: int(len(v)) for k, v in event_views.items()}
++
++        snapshots = extract_raw_snapshots(bundle.events_raw, window_sec=int(window_sec))
++        payload["raw_snapshot_count"] = int(len(snapshots))
++        payload["raw_snapshot_window_sec"] = int(window_sec)
++        if snapshots_csv or snapshots_jsonl or snapshots_parquet:
++            export_raw_snapshots(
++                snapshots,
++                csv_path=snapshots_csv,
++                jsonl_path=snapshots_jsonl,
++                parquet_path=snapshots_parquet,
++            )
++            payload["snapshots_csv"] = snapshots_csv
++            payload["snapshots_jsonl"] = snapshots_jsonl
++            payload["snapshots_parquet"] = snapshots_parquet
+ 
+         if payload["offsets"]["looks_incomplete"]:
+             payload["parse_warnings"].append(
+@@ -239,6 +270,22 @@ class PresentationLayer:
+             payload["idmap_jsonl"] = idmap_jsonl
+             payload["idmap_parquet"] = idmap_parquet
+ 
++        if unknown_csv or unknown_jsonl or unknown_parquet:
++            unknown_df = extract_unknown_events(bundle.events_raw)
++            export_unknown_events(
++                unknown_df,
++                csv_path=unknown_csv,
++                jsonl_path=unknown_jsonl,
++                parquet_path=unknown_parquet,
++            )
++            payload["unknown_events_count"] = int(len(unknown_df))
++            payload["unknown_action_type_counts"] = (
++                unknown_df["action_type"].value_counts().to_dict() if not unknown_df.empty else {}
++            )
++            payload["unknown_csv"] = unknown_csv
++            payload["unknown_jsonl"] = unknown_jsonl
++            payload["unknown_parquet"] = unknown_parquet
++
+         return payload
+ 
+ 
+diff --git a/aoe2stat/pipeline.py b/aoe2stat/pipeline.py
+index 72346b3..a6f2e6e 100644
+--- a/aoe2stat/pipeline.py
++++ b/aoe2stat/pipeline.py
+@@ -248,6 +248,29 @@ def build_parse_warnings(events_df: pd.DataFrame) -> list[dict[str, Any]]:
+     return warnings
+ 
+ 
++def extract_unknown_events(events_df: pd.DataFrame) -> pd.DataFrame:
++    cols = [
++        "event_id",
++        "match_id",
++        "t_ms",
++        "time_sec",
++        "player_id",
++        "player_name",
++        "action_type",
++        "action_family",
++        "event_type_semantic",
++        "event_label",
++        "x",
++        "y",
++        "payload_json",
++    ]
++    if events_df.empty or "event_type_semantic" not in events_df.columns:
++        return pd.DataFrame(columns=cols)
++    out = events_df[events_df["event_type_semantic"] == "other"].copy()
++    keep = [c for c in cols if c in out.columns]
++    return out[keep]
++
++
+ def extract_raw_snapshots(events_df: pd.DataFrame, window_sec: int = 10) -> pd.DataFrame:
+     """Build canonical per-window state snapshots from raw events.
+ 
+@@ -589,6 +612,26 @@ def export_id_mappings(
+         _to_parquet(mapping_df, parquet_path)
+ 
+ 
++def export_unknown_events(
++    unknown_df: pd.DataFrame,
++    csv_path: str | Path | None = None,
++    jsonl_path: str | Path | None = None,
++    parquet_path: str | Path | None = None,
++) -> None:
++    if csv_path:
++        out = Path(csv_path)
++        out.parent.mkdir(parents=True, exist_ok=True)
++        unknown_df.to_csv(out, index=False)
++    if jsonl_path:
++        out = Path(jsonl_path)
++        out.parent.mkdir(parents=True, exist_ok=True)
++        with out.open("w", encoding="utf-8") as fh:
++            for row in unknown_df.to_dict(orient="records"):
++                fh.write(json.dumps(row, ensure_ascii=True, default=str) + "\n")
++    if parquet_path:
++        _to_parquet(unknown_df, parquet_path)
++
++
+ def export_raw_snapshots(
+     snapshot_df: pd.DataFrame,
+     csv_path: str | Path | None = None,
+diff --git a/gui/window.py b/gui/window.py
+index 1bc273e..cba0eed 100644
+--- a/gui/window.py
++++ b/gui/window.py
+@@ -191,23 +191,21 @@ class MainWindow(QMainWindow):
+         self.setCentralWidget(self.tabs)
+         self._map_cache = None
+ 
+-        # Tabs
+-        self.tab_apm = QWidget(); self.tabs.addTab(self.tab_apm, "APM")
+-        self.tab_units = QWidget(); self.tabs.addTab(self.tab_units, "Unidades")
+-        self.tab_idle = QWidget(); self.tabs.addTab(self.tab_idle, "Idle TC")
+-        self.tab_res = QWidget(); self.tabs.addTab(self.tab_res, "Recursos")
+-        self.tab_stock = QWidget(); self.tabs.addTab(self.tab_stock, "Stock Total")
+-        self.tab_score = QWidget(); self.tabs.addTab(self.tab_score, "Ventaja")
++        # Tabs (minimal set to avoid redundant information across views).
++        self.tab_timeline = QWidget(); self.tabs.addTab(self.tab_timeline, "Timeline")
+         self.tab_kpis = QWidget(); self.tabs.addTab(self.tab_kpis, "KPIs")
+         self.tab_map = QWidget(); self.tabs.addTab(self.tab_map, "Mapa")
+ 
++        # Legacy tab placeholders kept to avoid breaking helper code paths.
++        self.tab_apm = QWidget()
++        self.tab_units = QWidget()
++        self.tab_idle = QWidget()
++        self.tab_res = QWidget()
++        self.tab_stock = QWidget()
++        self.tab_score = QWidget()
++
+         self._setup_menu()
+-        self._setup_apm_tab()
+-        self._setup_units_tab()
+-        self._setup_idle_tab()
+-        self._setup_res_tab()
+-        self._setup_stock_tab()
+-        self._setup_score_tab()
++        self._setup_timeline_tab()
+         self._setup_kpis_tab()
+         self._setup_map_tab()
+         self._apply_base_layouts()
+@@ -340,6 +338,44 @@ class MainWindow(QMainWindow):
+         layout = QVBoxLayout(); self.tab_stock.setLayout(layout)
+         self.stock_canvas = PlotCanvas(); layout.addWidget(self.stock_canvas)
+ 
++    def _setup_timeline_tab(self):
++        layout = QVBoxLayout(); self.tab_timeline.setLayout(layout)
++        controls = QHBoxLayout(); layout.addLayout(controls)
++        controls.addWidget(QLabel("Serie:"))
++        self.timeline_mode = QComboBox()
++        self.timeline_mode.addItems([
++            "Recursos colectados",
++            "Unidades creadas",
++            "Enemigos matados (proxy)",
++            "Edificios construidos",
++            "Clicks/APM",
++        ])
++        self.timeline_mode.currentTextChanged.connect(self.update_timeline)
++        controls.addWidget(self.timeline_mode)
++        controls.addWidget(QLabel("Recurso:"))
++        self.timeline_resource = QComboBox()
++        self.timeline_resource.addItems(["food", "wood", "gold", "stone"])
++        self.timeline_resource.currentTextChanged.connect(self.update_timeline)
++        controls.addWidget(self.timeline_resource)
++        controls.addWidget(QLabel("Unidad:"))
++        self.timeline_unit = QComboBox()
++        self.timeline_unit.addItems(list(self.unit_patterns.keys()))
++        self.timeline_unit.currentTextChanged.connect(self.update_timeline)
++        controls.addWidget(self.timeline_unit)
++        controls.addWidget(QLabel("Ventana (s):"))
++        self.timeline_window = QComboBox()
++        self.timeline_window.addItems(["15", "30", "45", "60", "90", "120"])
++        self.timeline_window.setCurrentText("60")
++        self.timeline_window.currentTextChanged.connect(self.update_timeline)
++        controls.addWidget(self.timeline_window)
++        controls.addStretch(1)
++        layout.addWidget(QLabel("Jugadores a mostrar:"))
++        self.timeline_players_list = QListWidget()
++        self.timeline_players_list.setSelectionMode(QListWidget.MultiSelection)
++        self.timeline_players_list.itemSelectionChanged.connect(self.update_timeline)
++        layout.addWidget(self.timeline_players_list)
++        self.timeline_canvas = PlotCanvas(); layout.addWidget(self.timeline_canvas)
++
+     def _setup_map_tab(self):
+         root = QHBoxLayout(); self.tab_map.setLayout(root)
+ 
+@@ -356,7 +392,11 @@ class MainWindow(QMainWindow):
+         self.map_layer_combo.addItems(["Actividad", "Propio", "Enemigo", "Edificios", "Presión"])
+         self.map_layer_combo.setCurrentText("Actividad")
+         self.map_layer_combo.currentTextChanged.connect(self.update_map)
++        self.map_layer_combo.currentTextChanged.connect(self._update_map_layer_help)
+         sidebar_layout.addWidget(self.map_layer_combo)
++        self.map_layer_help = QLabel("")
++        self.map_layer_help.setWordWrap(True)
++        sidebar_layout.addWidget(self.map_layer_help)
+ 
+         sidebar_layout.addWidget(QLabel("Jugador:"))
+         self.map_player_combo = QComboBox(); self.map_player_combo.addItem("Todos")
+@@ -404,6 +444,10 @@ class MainWindow(QMainWindow):
+         self.map_cinematic_check.setChecked(True)
+         self.map_cinematic_check.stateChanged.connect(self.update_map)
+         sidebar_layout.addWidget(self.map_cinematic_check)
++        self.map_dynamic_zoom_check = QCheckBox("Zoom dinamico (camara)")
++        self.map_dynamic_zoom_check.setChecked(False)
++        self.map_dynamic_zoom_check.stateChanged.connect(self.update_map)
++        sidebar_layout.addWidget(self.map_dynamic_zoom_check)
+ 
+         sidebar_layout.addWidget(QLabel("Suavizado movimiento:"))
+         self.map_cine_smooth_combo = QComboBox()
+@@ -412,7 +456,7 @@ class MainWindow(QMainWindow):
+         self.map_cine_smooth_combo.currentTextChanged.connect(self.update_map)
+         sidebar_layout.addWidget(self.map_cine_smooth_combo)
+ 
+-        sidebar_layout.addWidget(QLabel("Zoom dinamico:"))
++        sidebar_layout.addWidget(QLabel("Perfil de zoom:"))
+         self.map_cine_zoom_combo = QComboBox()
+         self.map_cine_zoom_combo.addItems(["Amplio", "Normal", "Cercano"])
+         self.map_cine_zoom_combo.setCurrentText("Normal")
+@@ -444,9 +488,18 @@ class MainWindow(QMainWindow):
+         self.map_log_window_combo.setCurrentText("120s")
+         self.map_log_window_combo.currentTextChanged.connect(self.update_map)
+         sidebar_layout.addWidget(self.map_log_window_combo)
+-        self.map_event_log_list = QListWidget()
+-        self.map_event_log_list.setObjectName("BookmarkList")
+-        sidebar_layout.addWidget(self.map_event_log_list, 1)
++        self.map_event_log_table = QTableWidget(0, 4)
++        self.map_event_log_table.setHorizontalHeaderLabels(["Tiempo", "Jugador", "Evento", "Detalle"])
++        self.map_event_log_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
++        self.map_event_log_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
++        self.map_event_log_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
++        self.map_event_log_table.verticalHeader().setVisible(False)
++        self.map_event_log_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
++        self.map_event_log_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
++        self.map_event_log_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
++        self.map_event_log_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
++        self.map_event_log_table.setWordWrap(False)
++        sidebar_layout.addWidget(self.map_event_log_table, 1)
+ 
+         # Right: big map canvas + playback strip.
+         right_wrap = QVBoxLayout()
+@@ -482,6 +535,7 @@ class MainWindow(QMainWindow):
+ 
+         root.addWidget(self.map_sidebar)
+         root.addLayout(right_wrap, 1)
++        self._update_map_layer_help()
+ 
+     def _apply_base_layouts(self):
+         # Consistent whitespace and visual rhythm across all tabs.
+@@ -489,14 +543,14 @@ class MainWindow(QMainWindow):
+         margin = 10 if compact else 14
+         spacing = 7 if compact else 10
+         tab_spacing = 8 if compact else 12
+-        tabs = [self.tab_apm, self.tab_units, self.tab_idle, self.tab_res, self.tab_stock, self.tab_score, self.tab_kpis, self.tab_map]
++        tabs = [self.tab_timeline, self.tab_kpis, self.tab_map, self.tab_apm, self.tab_units, self.tab_idle, self.tab_res, self.tab_stock, self.tab_score]
+         for tab in tabs:
+             lay = tab.layout()
+             if lay is None:
+                 continue
+             lay.setContentsMargins(margin, margin - 2, margin, margin - 2)
+             lay.setSpacing(spacing)
+-        for lay in [self.tab_apm.layout(), self.tab_units.layout(), self.tab_idle.layout(), self.tab_res.layout(), self.tab_kpis.layout(), self.tab_map.layout()]:
++        for lay in [self.tab_timeline.layout(), self.tab_kpis.layout(), self.tab_map.layout(), self.tab_apm.layout(), self.tab_units.layout(), self.tab_idle.layout(), self.tab_res.layout()]:
+             if lay is not None:
+                 lay.setSpacing(tab_spacing)
+         if hasattr(self, "units_players_list"):
+@@ -884,13 +938,21 @@ class MainWindow(QMainWindow):
+             self.map_delete_events_df = self._extract_delete_events()
+             self.map_event_log_df = self._build_map_event_log()
+             self._refresh_bookmarks_ui()
+-            # Populate players list
+-            self.units_players_list.clear()
+-            for p in self.match.players:
+-                item = QListWidgetItem(p.name)
+-                item.setData(1, int(p.number))
+-                item.setSelected(True)
+-                self.units_players_list.addItem(item)
++            # Populate players filters for visible analytics tab.
++            if hasattr(self, "timeline_players_list"):
++                self.timeline_players_list.clear()
++                for p in self.match.players:
++                    item = QListWidgetItem(p.name)
++                    item.setData(1, int(p.number))
++                    item.setSelected(True)
++                    self.timeline_players_list.addItem(item)
++            if hasattr(self, "units_players_list"):
++                self.units_players_list.clear()
++                for p in self.match.players:
++                    item = QListWidgetItem(p.name)
++                    item.setData(1, int(p.number))
++                    item.setSelected(True)
++                    self.units_players_list.addItem(item)
+             self.map_player_combo.blockSignals(True)
+             self.map_player_combo.clear()
+             self.map_player_combo.addItem("Todos")
+@@ -904,7 +966,7 @@ class MainWindow(QMainWindow):
+                 self.map_slider.setValue(0)
+             except Exception:
+                 pass
+-            self.update_apm(); self.update_units(); self.update_idle(); self.update_res(); self.update_stock(); self.update_score(); self.update_kpis(); self.update_map()
++            self.update_timeline(); self.update_kpis(); self.update_map()
+             self._update_replay_status()
+         except Exception as e:  # pragma: no cover
+             QMessageBox.critical(self, "Error", f"No se pudo abrir el replay:\n{e}\n\n{traceback.format_exc()}")
+@@ -1117,6 +1179,19 @@ class MainWindow(QMainWindow):
+                 return int(team_map.get(int(p.number), int(p.number)))
+         return None
+ 
++    def _update_map_layer_help(self):
++        if not hasattr(self, "map_layer_combo") or not hasattr(self, "map_layer_help"):
++            return
++        layer = self.map_layer_combo.currentText()
++        text_map = {
++            "Actividad": "Actividad total: pulsos de movimiento + edificios persistentes visibles en el tiempo.",
++            "Propio": "Solo tu equipo (segun Jugador elegido): pulsos y edificios propios.",
++            "Enemigo": "Solo rivales del jugador elegido: pulsos y edificios enemigos.",
++            "Edificios": "Vista estructural persistente: edificios que permanecen en el mapa.",
++            "Presión": "Diferencial espacial: enemigo - propio (positivo = presion rival).",
++        }
++        self.map_layer_help.setText(text_map.get(layer, ""))
++
+     def _toggle_map_sidebar(self):
+         if not hasattr(self, "map_sidebar"):
+             return
+@@ -1215,7 +1290,7 @@ class MainWindow(QMainWindow):
+         if self.events_df is None or self.events_df.empty:
+             return None
+         import pandas as pd
+-        rows: list[tuple[float, str]] = []
++        rows: list[dict[str, object]] = []
+         df = self.events_df.sort_values("time_sec")
+         for _, r in df.iterrows():
+             t = float(r.get("time_sec", 0.0))
+@@ -1234,11 +1309,15 @@ class MainWindow(QMainWindow):
+                     detail = str(p.get("unit", "") or p.get("object", "") or "")
+             except Exception:
+                 detail = ""
+-            ts = self._fmt_time(t)
+-            txt = f"{ts} | {pname or 'N/A'} | {a}"
+-            if detail:
+-                txt += f" | {detail}"
+-            rows.append((t, txt))
++            rows.append(
++                {
++                    "time_sec": t,
++                    "time_txt": self._fmt_time(t),
++                    "player": pname or "N/A",
++                    "event": a,
++                    "detail": detail or "",
++                }
++            )
+         try:
+             ev = important_events(self.match)
+             for _, r in ev.iterrows():
+@@ -1247,13 +1326,21 @@ class MainWindow(QMainWindow):
+                 pname = next((str(p.name) for p in self.match.players if int(p.number) == pid), f"P{pid}")
+                 lbl = str(r.get("label", "") or "")
+                 kind = str(r.get("kind", "") or "")
+-                rows.append((t, f"{self._fmt_time(t)} | {pname} | HITO {kind.upper()} | {lbl}"))
++                rows.append(
++                    {
++                        "time_sec": t,
++                        "time_txt": self._fmt_time(t),
++                        "player": pname,
++                        "event": f"HITO {kind.upper()}",
++                        "detail": lbl,
++                    }
++                )
+         except Exception:
+             pass
+         if not rows:
+             return None
+-        out = pd.DataFrame(rows, columns=["time_sec", "text"]).sort_values("time_sec")
+-        out = out.drop_duplicates(subset=["text"], keep="first")
++        out = pd.DataFrame(rows).sort_values("time_sec")
++        out = out.drop_duplicates(subset=["time_sec", "player", "event", "detail"], keep="first")
+         return out
+ 
+     def _extract_building_events(self):
+@@ -1387,6 +1474,8 @@ class MainWindow(QMainWindow):
+ 
+     def _current_tab_key(self) -> str | None:
+         w = self.tabs.currentWidget()
++        if w is self.tab_timeline:
++            return "timeline"
+         if w is self.tab_apm:
+             return "apm"
+         if w is self.tab_units:
+@@ -1407,14 +1496,15 @@ class MainWindow(QMainWindow):
+ 
+     def _canvas_for_key(self, key: str) -> PlotCanvas | None:
+         mapping = {
+-            "apm": self.apm_canvas,
+-            "units": self.units_canvas,
+-            "idle": self.idle_canvas,
+-            "res": self.res_canvas,
+-            "stock": self.stock_canvas,
+-            "score": self.score_canvas,
+-            "kpis": self.kpi_canvas,
+-            "map": self.map_canvas,
++            "timeline": getattr(self, "timeline_canvas", None),
++            "apm": getattr(self, "apm_canvas", None),
++            "units": getattr(self, "units_canvas", None),
++            "idle": getattr(self, "idle_canvas", None),
++            "res": getattr(self, "res_canvas", None),
++            "stock": getattr(self, "stock_canvas", None),
++            "score": getattr(self, "score_canvas", None),
++            "kpis": getattr(self, "kpi_canvas", None),
++            "map": getattr(self, "map_canvas", None),
+         }
+         return mapping.get(key)
+ 
+@@ -1508,10 +1598,14 @@ class MainWindow(QMainWindow):
+         self.apm_canvas.plot_lines(ts.index/60, series, 'Tiempo (min)', 'APM', f'APM ventana {w}s', colors)
+         self._overlay_important_events(self.apm_canvas)
+ 
+-    def _selected_players(self):
++    def _selected_players(self, list_widget=None):
++        if list_widget is None:
++            list_widget = getattr(self, "units_players_list", None)
++        if list_widget is None:
++            return []
+         pids = []
+-        for i in range(self.units_players_list.count()):
+-            item = self.units_players_list.item(i)
++        for i in range(list_widget.count()):
++            item = list_widget.item(i)
+             if item.isSelected():
+                 pids.append(int(item.data(1)))
+         return pids
+@@ -1739,6 +1833,7 @@ class MainWindow(QMainWindow):
+             canvas.set_legend_outside(self.legend_out_action.isChecked())
+         # lazily collect canvases
+         self.all_canvases = [
++            getattr(self, 'timeline_canvas', None),
+             getattr(self, 'apm_canvas', None),
+             getattr(self, 'units_canvas', None),
+             getattr(self, 'idle_canvas', None),
+@@ -2100,6 +2195,8 @@ class MainWindow(QMainWindow):
+ 
+         self.map_canvas.ax.clear()
+         self.map_canvas._apply_theme()
++        # Axes are recreated on every redraw; reset hover annotation to reattach it.
++        self.map_hover_annotation = None
+         cmap = "coolwarm" if layer == "Presión" else ("inferno" if self.map_canvas.dark else "YlOrRd")
+         self.map_canvas.ax.imshow(heat_show, cmap=cmap, interpolation="nearest", aspect="equal")
+         self.map_canvas.ax.set_xlabel("X cell")
+@@ -2107,22 +2204,13 @@ class MainWindow(QMainWindow):
+         self.map_canvas.ax.set_xticks(np.linspace(0, grid_size - 1, 5).astype(int))
+         self.map_canvas.ax.set_yticks(np.linspace(0, grid_size - 1, 5).astype(int))
+ 
+-        if is_cinematic and len(gx_all) > 0:
+-            if layer == "Presión":
+-                focus_weights = np.abs(heat_show).ravel()
+-                xs, ys = np.meshgrid(np.arange(grid_size), np.arange(grid_size))
+-                x_cells = xs.ravel()
+-                y_cells = (grid_size - 1 - ys).ravel()
+-                if float(np.sum(focus_weights)) > 0:
+-                    cx_target = float(np.average(x_cells, weights=focus_weights))
+-                    cy_target = float(np.average(y_cells, weights=focus_weights))
+-                    spread = float(max(np.std(x_cells), np.std(y_cells), 1.8))
+-                else:
+-                    cx_target = float(np.mean(gx_all)); cy_target = float(np.mean(gy_all))
+-                    spread = float(max(np.std(gx_all), np.std(gy_all), 1.8))
+-            else:
+-                cx_target = float(np.mean(gx_all)); cy_target = float(np.mean(gy_all))
+-                spread = float(max(np.std(gx_all), np.std(gy_all), 1.8))
++        # Default fixed framing for analytics readability.
++        self.map_canvas.ax.set_xlim(-0.5, grid_size - 0.5)
++        self.map_canvas.ax.set_ylim(grid_size - 0.5, -0.5)
++        if bool(getattr(self, "map_dynamic_zoom_check", None) and self.map_dynamic_zoom_check.isChecked()) and is_cinematic and len(gx_all) > 0:
++            cx_target = float(np.mean(gx_all))
++            cy_target = float(np.mean(gy_all))
++            spread = float(max(np.std(gx_all), np.std(gy_all), 1.8))
+             _, camera_lerp, zoom_factor = self._map_cine_params()
+             radius_target = float(np.clip((spread * 2.8) * zoom_factor, grid_size * 0.14, grid_size * 0.58))
+             if self.map_cine_center is None:
+@@ -2220,8 +2308,8 @@ class MainWindow(QMainWindow):
+                 seen.add(l); h2.append(h); l2.append(l)
+             self.map_canvas.ax.legend(h2, l2, loc="upper right", framealpha=0.4, fontsize=8)
+         self._set_map_hover_items(hover_items)
+-        if hasattr(self, "map_event_log_list"):
+-            self.map_event_log_list.clear()
++        if hasattr(self, "map_event_log_table"):
++            self.map_event_log_table.setRowCount(0)
+             if self.map_event_log_df is not None and not self.map_event_log_df.empty:
+                 log_mode = self.map_log_window_combo.currentText() if hasattr(self, "map_log_window_combo") else "120s"
+                 if log_mode == "Todo":
+@@ -2237,8 +2325,12 @@ class MainWindow(QMainWindow):
+                 max_rows = 250
+                 if len(log_df) > max_rows:
+                     log_df = log_df.iloc[-max_rows:]
+-                for txt in log_df["text"].tolist():
+-                    self.map_event_log_list.addItem(str(txt))
+-                self.map_event_log_list.scrollToBottom()
++                self.map_event_log_table.setRowCount(len(log_df))
++                for i, (_, row) in enumerate(log_df.iterrows()):
++                    self.map_event_log_table.setItem(i, 0, QTableWidgetItem(str(row.get("time_txt", ""))))
++                    self.map_event_log_table.setItem(i, 1, QTableWidgetItem(str(row.get("player", ""))))
++                    self.map_event_log_table.setItem(i, 2, QTableWidgetItem(str(row.get("event", ""))))
++                    self.map_event_log_table.setItem(i, 3, QTableWidgetItem(str(row.get("detail", ""))))
++                self.map_event_log_table.scrollToBottom()
+         self.map_last_time = t
+         self.map_canvas.draw()

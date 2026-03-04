@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AOE2 Web Analytics</title>
+  <style>
+    :root {
+      --bg: #0b1118;
+      --bg-soft: #101a25;
+      --panel: #162231;
+      --panel-2: #1a293b;
+      --text: #e9f1ff;
+      --muted: #9eb2cb;
+      --border: #2d3f57;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --control-bg: #121e2c;
+      --control-bg-2: #1a293a;
+    }
+    * { box-sizing: border-box; }
+    html, body { color-scheme: dark; }
+    body { margin: 0; font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; background: radial-gradient(1200px 600px at 10% -10%, #16314a 0%, var(--bg) 50%), var(--bg); color: var(--text); }
+    .app { display: grid; grid-template-columns: 370px 1fr; height: 100vh; }
+    .sidebar { background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%); border-right: 1px solid var(--border); padding: 12px; overflow-y: auto; overflow-x: hidden; }
+    .main { display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+    .toolbar { display: flex; gap: 8px; align-items: center; padding: 10px; border-bottom: 1px solid var(--border); background: var(--bg-soft); }
+    .content { display: grid; grid-template-columns: minmax(0, 1fr) 6px minmax(420px, 48vw); min-height: 0; }
+    .map-wrap { position: relative; min-width: 0; min-height: 0; background: #091019; }
+    .map-canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+    .splitter { cursor: col-resize; background: #0f1a27; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+    .splitter:hover { background: #162739; }
+    .log { border-left: 1px solid var(--border); background: var(--panel); overflow: auto; }
+    .log table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .log th, .log td { border-bottom: 1px solid #25364b; padding: 6px 8px; text-align: left; vertical-align: top; color: var(--text); }
+    .log th { position: sticky; top: 0; background: #132032; z-index: 2; }
+    h1 { font-size: 15px; margin: 0 0 10px; }
+    .group { margin: 0 0 12px; }
+    .group label { display: block; font-size: 12px; color: var(--muted); margin: 0 0 4px; }
+    .menu-section { margin: 0 0 10px; border: 1px solid var(--border); border-radius: 9px; background: rgba(10,18,27,.28); }
+    .menu-section[open] { background: rgba(10,18,27,.48); }
+    .menu-section > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 9px 10px;
+      font-weight: 700;
+      color: var(--text);
+      border-bottom: 1px solid transparent;
+      user-select: none;
+    }
+    .menu-section[open] > summary { border-bottom-color: var(--border); }
+    .menu-section > summary::-webkit-details-marker { display: none; }
+    .menu-section > summary::before { content: "▾ "; color: var(--muted); }
+    .menu-section:not([open]) > summary::before { content: "▸ "; }
+    .menu-body { padding: 10px; }
+    input, select, button { width: 100%; border: 1px solid var(--border); color: var(--text); border-radius: 7px; padding: 7px 8px; }
+    input, select { background: var(--control-bg); }
+    input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(56,189,248,.25); }
+    input::placeholder { color: var(--muted); }
+    select option { background: #102033; color: var(--text); }
+    input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus {
+      -webkit-text-fill-color: var(--text);
+      -webkit-box-shadow: 0 0 0 1000px var(--control-bg) inset;
+      transition: background-color 9999s ease-in-out 0s;
+    }
+    button { background: linear-gradient(180deg, var(--accent) 0%, var(--accent-2) 100%); border-color: var(--accent-2); color: #f8fcff; font-weight: 700; cursor: pointer; }
+    button:hover { filter: brightness(1.07); }
+    button:active { transform: translateY(1px); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .checks label { display: flex; gap: 8px; align-items: center; color: var(--text); }
+    .checks input { width: auto; }
+    .hint { font-size: 12px; color: var(--muted); line-height: 1.35; min-height: 44px; }
+    .status { font-size: 12px; color: var(--muted); word-break: break-word; }
+    .toolbar label, .toolbar span { color: var(--text); }
+    #time { accent-color: var(--accent); background: transparent; border: 0; padding: 0; }
+    .tooltip {
+      position: fixed; pointer-events: none; background: #0d1117; color: #f0f6fc;
+      border: 1px solid #394b63; border-radius: 6px; padding: 6px 8px; font-size: 12px; display: none; z-index: 5;
+      max-width: 420px; white-space: pre-line; line-height: 1.3;
+    }
+    @media (max-width: 1200px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { border-right: 0; border-bottom: 1px solid var(--border); }
+      .content { grid-template-columns: 1fr; }
+      .splitter { display: none; }
+      .log { border-left: 0; border-top: 1px solid var(--border); max-height: 36vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <h1>AOE2 Web Analytics</h1>
+      <div class="row" style="margin-bottom:10px;">
+        <button id="expandAll">Expandir todo</button>
+        <button id="collapseAll">Colapsar todo</button>
+      </div>
+      <details class="menu-section" open>
+        <summary>Replay</summary>
+        <div class="menu-body">
+          <div class="group">
+            <label>Replay path</label>
+            <input id="replayPath" value="AgeIIDE_Replay_396581946.aoe2record" />
+          </div>
+          <div class="group"><button id="loadBtn">Load Replay</button></div>
+          <div class="status" id="status">Session: not loaded</div>
+        </div>
+      </details>
+
+      <details class="menu-section" open>
+        <summary>Filtros de capa</summary>
+        <div class="menu-body">
+          <div class="group">
+            <label>Layer</label>
+            <select id="layer">
+              <option>Actividad</option><option>Propio</option><option>Enemigo</option><option>Edificios</option><option>Presión</option>
+            </select>
+          </div>
+          <div class="hint" id="layerHint"></div>
+          <div class="group"><label>Player</label><select id="playerName"><option>Todos</option></select></div>
+          <div class="group"><label>Action family</label><select id="actionFamily"><option>Todos</option><option>movement</option><option>build</option><option>production</option><option>military</option><option>research</option><option>economy</option><option>other</option></select></div>
+        </div>
+      </details>
+
+      <details class="menu-section" open>
+        <summary>Tiempo y log</summary>
+        <div class="menu-body">
+          <div class="row">
+            <div class="group"><label>Window (s)</label><select id="windowSec"><option>5</option><option>10</option><option selected>20</option><option>30</option><option>60</option></select></div>
+            <div class="group"><label>Log window</label><select id="logWindow"><option>30</option><option>60</option><option selected>120</option><option>300</option></select></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="menu-section" open>
+        <summary>Overlays</summary>
+        <div class="menu-body checks">
+          <label><input type="checkbox" id="showResources" checked /> Resources</label>
+          <label><input type="checkbox" id="showKeyObjects" checked /> TC/Castles</label>
+          <label><input type="checkbox" id="showPulses" checked /> Movement pulses</label>
+          <label><input type="checkbox" id="showBuildings" checked /> Persistent buildings (heat)</label>
+          <label><input type="checkbox" id="showBuildingMarkers" checked /> Building markers (all types)</label>
+          <label><input type="checkbox" id="showUnits" checked /> Unit positions/events</label>
+        </div>
+      </details>
+    </aside>
+    <section class="main">
+      <div class="toolbar">
+        <button id="playBtn" style="width:auto; min-width:90px;">Play</button>
+        <label>Speed</label>
+        <select id="speed" style="width:90px;"><option>0.5</option><option selected>1</option><option>2</option><option>4</option></select>
+        <input id="time" type="range" min="0" max="1" value="0" step="1" style="flex:1;" />
+        <button id="logToggle" style="width:auto; min-width:92px;">Ocultar log</button>
+        <span id="timeLabel">0:00</span>
+      </div>
+      <div class="content">
+        <div class="map-wrap" id="mapWrap">
+          <canvas id="mapCanvas" class="map-canvas"></canvas>
+          <div id="tooltip" class="tooltip"></div>
+        </div>
+        <div id="splitter" class="splitter" title="Arrastrar para redimensionar log"></div>
+        <div class="log">
+          <table>
+            <thead><tr><th>Time</th><th>Player</th><th>Event</th><th>Detail</th></tr></thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+    const state = { sessionId: null, durationSec: 0, frame: null, playing: false, timer: null, hoverByCell: new Map(), logVisible: true, logWidth: 520 };
+    const el = (id) => document.getElementById(id);
+    const layerHints = {
+      "Actividad": "Total activity: movement pulses + persistent buildings.",
+      "Propio": "Only selected player's team.",
+      "Enemigo": "Only opposing teams to selected player.",
+      "Edificios": "Persistent structure footprint over time.",
+      "Presión": "Spatial differential: enemy - own."
+    };
+
+    function fmt(sec) { const s = Math.max(0, Math.round(sec)); return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+    function layerCmap(v, maxV, layer) {
+      if (layer === "Presión") {
+        const n = maxV <= 0 ? 0 : Math.max(-1, Math.min(1, v / maxV));
+        if (n >= 0) return [Math.floor(240 + 15*n), Math.floor(80 + 120*(1-n)), Math.floor(70 + 60*(1-n))];
+        const a = Math.abs(n); return [Math.floor(70 + 60*(1-a)), Math.floor(120 + 120*(1-a)), Math.floor(220 + 25*a)];
+      }
+      const n = maxV <= 0 ? 0 : Math.max(0, Math.min(1, v / maxV));
+      return [Math.floor(20 + 250*n), Math.floor(30 + 120*(1-n)), Math.floor(40 + 30*(1-n))];
+    }
+
+    async function loadReplay() {
+      const replayPath = el("replayPath").value.trim();
+      const res = await fetch("/api/session", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ replay_path: replayPath }) });
+      if (!res.ok) { alert(await res.text()); return; }
+      const data = await res.json();
+      state.sessionId = data.session_id;
+      state.durationSec = Math.max(1, Math.floor(data.duration_sec || 1));
+      el("time").max = String(state.durationSec);
+      el("time").value = "0";
+      el("timeLabel").textContent = "0:00";
+      el("status").textContent = `Session loaded | ${data.replay_path}`;
+      const playerSel = el("playerName");
+      playerSel.innerHTML = "<option>Todos</option>";
+      for (const p of data.players || []) {
+        const opt = document.createElement("option");
+        opt.value = p.player_name; opt.textContent = `${p.player_name} (T${p.team_id})`;
+        playerSel.appendChild(opt);
+      }
+      await refreshFrame();
+    }
+
+    async function refreshFrame() {
+      if (!state.sessionId) return;
+      const t = Number(el("time").value || "0");
+      const params = new URLSearchParams({
+        t: String(t),
+        window_sec: el("windowSec").value,
+        grid_size: "128",
+        layer: el("layer").value,
+        player_name: el("playerName").value,
+        action_family: el("actionFamily").value,
+        show_resources: String(el("showResources").checked),
+        show_key_objects: String(el("showKeyObjects").checked),
+        show_pulses: String(el("showPulses").checked),
+        show_buildings: String(el("showBuildings").checked),
+        show_building_markers: String(el("showBuildingMarkers").checked),
+        show_units: String(el("showUnits").checked),
+        log_window_sec: el("logWindow").value,
+      });
+      const res = await fetch(`/api/session/${state.sessionId}/frame?${params.toString()}`);
+      if (!res.ok) return;
+      const frame = await res.json();
+      state.frame = frame;
+      el("timeLabel").textContent = fmt(t);
+      drawFrame();
+      drawLog();
+    }
+
+    function drawFrame() {
+      const wrap = el("mapWrap");
+      const c = el("mapCanvas");
+      const ctx = c.getContext("2d");
+      const w = wrap.clientWidth, h = wrap.clientHeight;
+      c.width = w; c.height = h;
+      ctx.fillStyle = "#0b1118"; ctx.fillRect(0,0,w,h);
+      const f = state.frame;
+      if (!f || !f.heat) return;
+      const n = f.grid_size || 128;
+      const cellW = w / n, cellH = h / n;
+      state.hoverByCell = new Map();
+      const addHover = (gx, gy, text) => {
+        const key = `${gx},${gy}`;
+        if (!state.hoverByCell.has(key)) state.hoverByCell.set(key, []);
+        state.hoverByCell.get(key).push(text);
+      };
+      let maxV = 0;
+      for (const row of f.heat) for (const v of row) maxV = Math.max(maxV, Math.abs(v || 0));
+      for (let r=0; r<n; r++) {
+        for (let c0=0; c0<n; c0++) {
+          const v = Number(f.heat[r][c0] || 0);
+          if (Math.abs(v) < 1e-6) continue;
+          const [rr,gg,bb] = layerCmap(v, maxV, f.layer);
+          ctx.fillStyle = `rgba(${rr},${gg},${bb},0.95)`;
+          ctx.fillRect(c0*cellW, r*cellH, Math.ceil(cellW), Math.ceil(cellH));
+        }
+      }
+      const resColor = { wood:"#2fa54a", gold:"#ffd34d", stone:"#9ea7b3", food:"#c8672a" };
+      for (const o of (f.resources || [])) {
+        const x = (o.x + 0.5) * cellW, y = (n - 1 - o.y + 0.5) * cellH;
+        ctx.fillStyle = resColor[o.resource_type] || "#ffffff";
+        const r = o.resource_type === "wood" ? 1.2 : 2.2;
+        ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+        addHover(o.x, o.y, `Resource: ${o.resource_type}`);
+      }
+      for (const o of (f.key_objects || [])) {
+        const x = (o.x + 0.5) * cellW, y = (n - 1 - o.y + 0.5) * cellH;
+        const kind = o.object_kind;
+        ctx.fillStyle = kind === "castle" ? "#f7b267" : (kind === "tc_initial" ? "#8dd3ff" : "#d3f5ff");
+        ctx.strokeStyle = "#111";
+        if (kind === "castle") { ctx.fillRect(x-4,y-4,8,8); ctx.strokeRect(x-4,y-4,8,8); }
+        else if (kind === "tc_initial") { ctx.beginPath(); ctx.moveTo(x,y-5); ctx.lineTo(x+5,y); ctx.lineTo(x,y+5); ctx.lineTo(x-5,y); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+        else { ctx.beginPath(); ctx.moveTo(x,y-5); ctx.lineTo(x+5,y+4); ctx.lineTo(x-5,y+4); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+        const label = kind === "castle" ? "Castle" : (kind === "tc_initial" ? "TC initial" : "TC");
+        addHover(o.x, o.y, `${label} | ${o.player_name} | team ${o.team_id} | t=${fmt(o.time_sec)}`);
+      }
+      for (const o of (f.building_points || [])) {
+        const x = (o.x + 0.5) * cellW, y = (n - 1 - o.y + 0.5) * cellH;
+        ctx.fillStyle = "#f4c27b";
+        ctx.strokeStyle = "#1b1307";
+        ctx.fillRect(x - 2.5, y - 2.5, 5, 5);
+        ctx.strokeRect(x - 2.5, y - 2.5, 5, 5);
+        addHover(o.x, o.y, `Building: ${o.building_name} | ${o.player_name} | t=${fmt(o.time_sec)}`);
+      }
+      for (const o of (f.unit_points || [])) {
+        const x = (o.x + 0.5) * cellW, y = (n - 1 - o.y + 0.5) * cellH;
+        const teamPalette = ["#7ec8ff", "#ff9ea0", "#95f1a0", "#ffd67e", "#d6b3ff", "#a4fff9"];
+        const teamIdx = Math.max(0, (Number(o.team_id || 1) - 1) % teamPalette.length);
+        ctx.fillStyle = teamPalette[teamIdx];
+        ctx.globalAlpha = 0.75;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+        addHover(o.x, o.y, `Unit evt: ${o.player_name} | ${o.action_family}/${o.event}`);
+      }
+    }
+
+    function drawLog() {
+      const body = el("logBody");
+      body.innerHTML = "";
+      const rows = (state.frame && state.frame.event_log) || [];
+      for (const r of rows) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${r.time_txt || ""}</td><td>${r.player || ""}</td><td>${r.event || ""}</td><td>${r.detail || ""}</td>`;
+        tr.addEventListener("dblclick", async () => { el("time").value = String(Math.round(r.time_sec || 0)); await refreshFrame(); });
+        body.appendChild(tr);
+      }
+    }
+
+    function applyLayout() {
+      const content = document.querySelector(".content");
+      const splitter = el("splitter");
+      const log = document.querySelector(".log");
+      const mobile = window.matchMedia("(max-width: 1200px)").matches;
+      if (mobile) {
+        content.style.gridTemplateColumns = "1fr";
+        splitter.style.display = "none";
+        log.style.display = state.logVisible ? "block" : "none";
+        return;
+      }
+      if (!state.logVisible) {
+        content.style.gridTemplateColumns = "1fr 0 0";
+        splitter.style.display = "none";
+        log.style.display = "none";
+      } else {
+        const w = Math.max(360, Math.min(900, Number(state.logWidth || 520)));
+        content.style.gridTemplateColumns = `minmax(0,1fr) 6px ${w}px`;
+        splitter.style.display = "block";
+        log.style.display = "block";
+      }
+    }
+
+    function wire() {
+      el("loadBtn").addEventListener("click", loadReplay);
+      el("expandAll").addEventListener("click", () => {
+        document.querySelectorAll(".menu-section").forEach((d) => d.open = true);
+      });
+      el("collapseAll").addEventListener("click", () => {
+        document.querySelectorAll(".menu-section").forEach((d) => d.open = false);
+      });
+      const refreshers = ["time","windowSec","layer","playerName","actionFamily","showResources","showKeyObjects","showPulses","showBuildings","showBuildingMarkers","showUnits","logWindow"];
+      for (const id of refreshers) el(id).addEventListener("input", refreshFrame);
+      el("layer").addEventListener("change", () => { el("layerHint").textContent = layerHints[el("layer").value] || ""; });
+      el("layerHint").textContent = layerHints[el("layer").value] || "";
+      el("playBtn").addEventListener("click", () => {
+        state.playing = !state.playing;
+        el("playBtn").textContent = state.playing ? "Pause" : "Play";
+        if (state.playing) {
+          const speed = () => Number(el("speed").value || "1");
+          state.timer = setInterval(async () => {
+            let t = Number(el("time").value || "0");
+            t += 0.25 * speed();
+            if (t >= state.durationSec) { t = state.durationSec; state.playing = false; clearInterval(state.timer); el("playBtn").textContent = "Play"; }
+            el("time").value = String(Math.round(t));
+            await refreshFrame();
+          }, 250);
+        } else if (state.timer) {
+          clearInterval(state.timer); state.timer = null;
+        }
+      });
+      el("logToggle").addEventListener("click", () => {
+        state.logVisible = !state.logVisible;
+        el("logToggle").textContent = state.logVisible ? "Ocultar log" : "Mostrar log";
+        applyLayout();
+      });
+      const splitter = el("splitter");
+      let resizing = false;
+      splitter.addEventListener("mousedown", () => { resizing = true; });
+      window.addEventListener("mouseup", () => { resizing = false; });
+      window.addEventListener("mousemove", (ev) => {
+        if (!resizing || !state.logVisible) return;
+        const contentRect = document.querySelector(".content").getBoundingClientRect();
+        const newWidth = contentRect.right - ev.clientX;
+        state.logWidth = Math.max(360, Math.min(900, newWidth));
+        applyLayout();
+      });
+      const tooltip = el("tooltip");
+      el("mapCanvas").addEventListener("mousemove", (ev) => {
+        const f = state.frame;
+        if (!f || !f.heat) { tooltip.style.display = "none"; return; }
+        const rect = ev.currentTarget.getBoundingClientRect();
+        const wrap = el("mapWrap");
+        const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+        const n = f.grid_size || 128;
+        const cellW = rect.width / n;
+        const cellH = rect.height / n;
+        const cx = Math.max(0, Math.min(n - 1, Math.floor(x / cellW)));
+        const row = Math.max(0, Math.min(n - 1, Math.floor(y / cellH)));
+        const gy = n - 1 - row;
+        const heatVal = Number(((f.heat[row] || [])[cx]) || 0);
+        const lines = [`Cell (${cx}, ${gy})`, `Heat: ${heatVal.toFixed(2)}`];
+        const key = `${cx},${gy}`;
+        const extras = state.hoverByCell.get(key) || [];
+        for (const txt of extras.slice(0, 8)) lines.push(txt);
+        tooltip.textContent = lines.join("\n");
+        const left = Math.min(ev.clientX + 14, window.innerWidth - 430);
+        const top = Math.min(ev.clientY + 14, window.innerHeight - 120);
+        tooltip.style.left = `${Math.max(8, left)}px`;
+        tooltip.style.top = `${Math.max(8, top)}px`;
+        tooltip.style.display = "block";
+      });
+      el("mapCanvas").addEventListener("mouseleave", () => { tooltip.style.display = "none"; });
+      window.addEventListener("resize", () => { applyLayout(); drawFrame(); });
+      applyLayout();
+    }
+    wire();
+  </script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+CHECKLIST_DESARROLLO.md
+README.md
+aoe2stat/spatial.py
+gui/window.py

@@ -220,6 +220,11 @@ class MainWindow(QMainWindow):
 
     # ---- UI Setup ----
     def _setup_menu(self):
+        try:
+            # Force Qt-drawn menubar so stylesheet colors apply consistently on Linux.
+            self.menuBar().setNativeMenuBar(False)
+        except Exception:
+            pass
         open_action = QAction("Abrir replay", self)
         open_action.triggered.connect(self.open_replay)
         download_recent_action = QAction("Descargar recientes por jugador", self)
@@ -626,9 +631,11 @@ class MainWindow(QMainWindow):
             QMenuBar::item {{
                 padding: 6px 10px;
                 border-radius: 6px;
+                color: {text};
             }}
             QMenuBar::item:selected {{
                 background: {tab_sel};
+                color: {text};
             }}
             QMenu {{
                 background: {panel};

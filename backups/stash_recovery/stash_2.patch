@@ -1,0 +1,109 @@
+diff --git a/aoe2_parser.py b/aoe2_parser.py
+index 834d8b9..2472abd 100644
+--- a/aoe2_parser.py
++++ b/aoe2_parser.py
+@@ -52,6 +52,18 @@ def main() -> None:
+         "--export-idmap-parquet",
+         help="Export replay-derived id mapping table to Parquet path.",
+     )
++    parser.add_argument(
++        "--export-snapshots-csv",
++        help="Export canonical raw snapshots to CSV path.",
++    )
++    parser.add_argument(
++        "--export-snapshots-jsonl",
++        help="Export canonical raw snapshots to JSONL path.",
++    )
++    parser.add_argument(
++        "--export-snapshots-parquet",
++        help="Export canonical raw snapshots to Parquet path.",
++    )
+     parser.add_argument(
+         "--grid-size",
+         type=int,
+@@ -87,6 +99,9 @@ def main() -> None:
+         or args.export_idmap_csv
+         or args.export_idmap_jsonl
+         or args.export_idmap_parquet
++        or args.export_snapshots_csv
++        or args.export_snapshots_jsonl
++        or args.export_snapshots_parquet
+     )
+     if wants_structured:
+         transformer = TransformLayer()
+@@ -103,12 +118,15 @@ def main() -> None:
+                 events_parquet=args.export_events_parquet,
+                 spatial_csv=args.export_spatial_csv,
+                 spatial_parquet=args.export_spatial_parquet,
+-                idmap_csv=args.export_idmap_csv,
+-                idmap_jsonl=args.export_idmap_jsonl,
+-                idmap_parquet=args.export_idmap_parquet,
+-                grid_size=int(args.grid_size),
+-                window_sec=int(args.window_sec),
+-                replay_path=replay_path,
++            idmap_csv=args.export_idmap_csv,
++            idmap_jsonl=args.export_idmap_jsonl,
++            idmap_parquet=args.export_idmap_parquet,
++            snapshots_csv=args.export_snapshots_csv,
++            snapshots_jsonl=args.export_snapshots_jsonl,
++            snapshots_parquet=args.export_snapshots_parquet,
++            grid_size=int(args.grid_size),
++            window_sec=int(args.window_sec),
++            replay_path=replay_path,
+             )
+         except Exception as exc:
+             # Controlled degradation for corrupt/truncated files (P2-007):
+diff --git a/aoe2stat/layers.py b/aoe2stat/layers.py
+index e83f202..d8d2161 100644
+--- a/aoe2stat/layers.py
++++ b/aoe2stat/layers.py
+@@ -14,8 +14,12 @@ from .pipeline import (
+     build_parse_warnings,
+     export_events,
+     export_id_mappings,
++    export_raw_snapshots,
+     export_spatial_frames,
++    extract_base_timelines,
++    extract_event_views,
+     extract_id_mappings,
++    extract_raw_snapshots,
+     source_lib_version,
+ )
+ from .services import ReplayAnalysisService
+@@ -173,6 +177,9 @@ class PresentationLayer:
+         idmap_csv: str | None,
+         idmap_jsonl: str | None,
+         idmap_parquet: str | None,
++        snapshots_csv: str | None = None,
++        snapshots_jsonl: str | None = None,
++        snapshots_parquet: str | None = None,
+         grid_size: int,
+         window_sec: int,
+         replay_path: str | Path,
+@@ -199,6 +206,26 @@ class PresentationLayer:
+             "validation": bundle.validation,
+         }
+ 
++        timelines = extract_base_timelines(bundle.events_raw)
++        payload["timeline_counts"] = {k: int(len(v)) for k, v in timelines.items()}
++
++        event_views = extract_event_views(bundle.events_raw)
++        payload["event_view_counts"] = {k: int(len(v)) for k, v in event_views.items()}
++
++        snapshots = extract_raw_snapshots(bundle.events_raw, window_sec=int(window_sec))
++        payload["raw_snapshot_count"] = int(len(snapshots))
++        payload["raw_snapshot_window_sec"] = int(window_sec)
++        if snapshots_csv or snapshots_jsonl or snapshots_parquet:
++            export_raw_snapshots(
++                snapshots,
++                csv_path=snapshots_csv,
++                jsonl_path=snapshots_jsonl,
++                parquet_path=snapshots_parquet,
++            )
++            payload["snapshots_csv"] = snapshots_csv
++            payload["snapshots_jsonl"] = snapshots_jsonl
++            payload["snapshots_parquet"] = snapshots_parquet
++
+         if payload["offsets"]["looks_incomplete"]:
+             payload["parse_warnings"].append(
+                 _warn(

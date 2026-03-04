@@ -1,0 +1,6 @@
+CHECKLIST_DESARROLLO.md
+aoe2_cli.py
+aoe2_parser.py
+aoe2stat/layers.py
+aoe2stat/pipeline.py
+gui/window.py
