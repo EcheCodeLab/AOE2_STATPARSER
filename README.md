@@ -59,6 +59,7 @@ npm run batch -- --input-dir ./replays --out-dir ./batch_out
 
 - Entrada por carpeta (`--input-dir`), lista (`--list-file`) o paths posicionales
 - Descarga opcional por IDs (`--game-ids`)
+- Descarga automática de partidas recientes por jugador (`--player-profile-ids` / `--player-aliases`)
 - Dedupe por `sha256` (se puede desactivar con `--no-dedupe`)
 - Checkpoint reanudable (`--checkpoint`)
 - Reintentos por replay (`--retries`)
@@ -84,6 +85,12 @@ python aoe2_batch.py --list-file ./replays.txt --out-dir ./batch_out
 # Descargar y parsear por IDs
 python aoe2_batch.py --game-ids 396581946 396581947 --download-dir ./downloads --out-dir ./batch_out
 
+# Descargar y parsear partidas recientes de jugadores por alias
+python aoe2_batch.py --player-aliases "Hera" "Liereyy" --per-player-count 3 --out-dir ./batch_out
+
+# Variante más robusta por profile IDs
+python aoe2_batch.py --player-profile-ids 6174996 1234567 --per-player-count 5 --out-dir ./batch_out
+
 # Batch + export estructurado (events y espacial)
 python aoe2_batch.py --input-dir ./replays --out-dir ./batch_out --export-events --export-spatial --grid-size 32 --window-sec 10
 
@@ -96,9 +103,17 @@ python aoe2_batch.py --input-dir ./replays --out-dir ./batch_out --export-events
 Además del notebook, el repo incluye una pequeña librería y una GUI de escritorio:
 
 - `aoe2stat/`: utilidades núcleo
+  - `config.py`: configuración centralizada desde entorno (`AOE2_*`)
   - `patterns.py`: patrones de unidades (incluye Knight line y más)
   - `core.py`: extracción robusta desde payloads
   - `pipeline.py`: extracción canónica de eventos y generación de frames espaciales
+  - `schema.py`: modelos tipados para bundles de análisis
+  - `io.py`: lectura/escritura de formatos (json/csv/jsonl/parquet)
+  - `features.py`: plugins de features/KPI (`FeaturePlugin`, `FeatureRegistry`)
+  - `spatial.py`: capa espacial de alto nivel para `NxN`
+  - `validation.py`: controles de calidad de datasets derivados
+  - `services.py`: orquestación reusable por CLI/GUI (`ReplayAnalysisService`)
+  - `batch.py`: ejecución batch con la capa de servicios
   - `metrics.py`: APM, series de creación, conteo de aldeanos, idle TC (incl. acumulado), recursos (fallback)
   - `viz.py`: funciones de plotting con Matplotlib
 - `gui/`: GUI con PySide6/PyQt5
@@ -126,6 +141,7 @@ Abre un `.aoe2record` desde el menú Archivo. Cada pestaña tiene controles (uni
 También podés abrir una carpeta completa de replays desde `Archivo -> Abrir carpeta de replays` y navegar rápido con:
 - `Archivo -> Replay anterior`
 - `Archivo -> Replay siguiente`
+- `Archivo -> Descargar recientes por jugador` para bajar partidas nuevas desde internet por alias
 
 Exportes desde GUI:
 - `Archivo -> Exportar gráfico (PNG)` para la pestaña activa
@@ -159,6 +175,9 @@ La pestaña `Mapa` ahora usa una grilla `NxN` para visualizar densidad espacial 
 Se incluye un DDL base para persistencia incremental en:
 
 - `db/supabase_schema.sql`
+- `db/SCHEMA_CONTRACT.md` (tipos, nullabilidad, unidades y claves lógicas)
+- `db/MIGRATIONS.md` (política de versionado y estrategia de migraciones)
+- `db/migrations/0001__baseline_sprint_1_1.sql` (baseline incremental)
 
 Tablas incluidas:
 

@@ -28,14 +28,8 @@ import requests
 import mgz.summary
 import mgz.fast
 
-from aoe2stat.core import load_match
-from aoe2stat.pipeline import (
-    build_match_meta,
-    extract_raw_events,
-    spatial_frames_from_events,
-    export_events,
-    export_spatial_frames,
-)
+from aoe2stat.pipeline import export_events, export_spatial_frames
+from aoe2stat.services import ReplayAnalysisService
 
 
 @dataclass
@@ -189,9 +183,14 @@ def main() -> None:
         or args.export_spatial_parquet
     )
     if wants_structured:
-        match = load_match(replay_path)
-        meta = build_match_meta(match, replay_path)
-        events_df = extract_raw_events(match, match_id=meta.match_id)
+        service = ReplayAnalysisService()
+        bundle = service.analyze(
+            replay_path=replay_path,
+            grid_size=int(args.grid_size),
+            window_sec=int(args.window_sec),
+        )
+        meta = bundle.match_meta
+        events_df = bundle.events_raw
         export_events(
             events_df,
             csv_path=args.export_events_csv,
@@ -199,19 +198,16 @@ def main() -> None:
             parquet_path=args.export_events_parquet,
         )
         output["structured"] = {
-            "match_meta": meta.__dict__,
+            "match_meta": meta,
             "events_count": int(len(events_df)),
             "events_csv": args.export_events_csv,
             "events_jsonl": args.export_events_jsonl,
             "events_parquet": args.export_events_parquet,
+            "features": bundle.features,
+            "validation": bundle.validation,
         }
         if args.export_spatial_csv or args.export_spatial_parquet:
-            spatial_df = spatial_frames_from_events(
-                events_df,
-                map_dimension=meta.map_dimension,
-                grid_size=args.grid_size,
-                window_sec=args.window_sec,
-            )
+            spatial_df = bundle.spatial_frames
             export_spatial_frames(
                 spatial_df,
                 csv_path=args.export_spatial_csv,

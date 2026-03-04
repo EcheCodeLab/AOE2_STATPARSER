@@ -23,20 +23,38 @@ Fecha de inicio: 2026-03-03
 - [x] P6-001 Definir comando CLI principal con subcomandos (`parse`, `metrics`, `batch`, `inspect`) (Owner: Codex, implementado en `aoe2_cli.py`)
 - [x] P6-002 Agregar salida JSON compacta y JSON detallada (Owner: Codex, implementado en `aoe2_cli.py` con `--json {compact,detailed}`)
 - [x] P6-004 Agregar `--schema-version` y `--parser-version` en salida (Owner: Codex, implementado en `aoe2_cli.py` + bloque `meta`)
+- [x] P6-005 Agregar `--strict` para fallar ante warnings severos (Owner: Codex, implementado en `aoe2_cli.py` con severidad `severe`)
+- [x] P4-014 Crear calculadora de KPIs por ventana configurable (Owner: Codex, `aoe2stat/kpis.py::kpis_by_window` + integración en `aoe2_cli.py metrics`)
+- [x] P4-015 Crear calculadora de KPIs acumulados al minuto N (Owner: Codex, `aoe2stat/kpis.py::kpis_at_minute` + integración en `aoe2_cli.py metrics`)
 - [~] P6-010 GUI: panel de filtros por jugador/edad/tipo evento (Owner: Codex, implementado en tab Mapa NxN; falta expandir al resto)
 - [x] P6-013 GUI: bookmarks de timestamps relevantes (Owner: Codex, alta/salto/eliminación/limpieza en tab Mapa)
 - [x] P6-014 GUI: exportar gráfico y exportar datos filtrados (Owner: Codex, export PNG/CSV por pestaña activa)
 - [x] P6-015 GUI: reproducir timeline a velocidad variable (Owner: Codex, play/pausa + velocidades 0.5x/1x/2x/4x)
 - [x] P6-012 GUI: overlay de eventos sobre series de tiempo (Owner: Codex, toggle global en menú Ver)
+- [x] P7-003 Implementar runner batch por IDs (descarga + parse) (Owner: Codex, extendido con fetch reciente por jugador alias/profile_id)
 - [x] P5-003 Definir grillas base (16x16, 32x32, 64x64) y criterio de eleccion (Owner: Codex, MVP con selector en GUI)
 - [x] P5-014 Crear visualizador de grilla en GUI (Owner: Codex, MVP heatmap NxN)
 - [x] P5-015 Crear reproductor temporal con scrubber de tiempo (Owner: Codex, MVP slider por segundos)
 - [x] P3-001 Definir esquema de tabla `matches` (Owner: Codex, `db/supabase_schema.sql`)
 - [x] P3-002 Definir esquema de tabla `players` (Owner: Codex, `db/supabase_schema.sql`)
 - [x] P3-005 Definir esquema de tabla `spatial_frames` (Owner: Codex, `db/supabase_schema.sql`)
+- [x] P3-007 Documentar tipos, nullabilidad y unidades de cada columna (Owner: Codex, `db/SCHEMA_CONTRACT.md`)
+- [x] P3-008 Definir claves primarias y foráneas lógicas (Owner: Codex, `db/SCHEMA_CONTRACT.md`)
+- [x] P3-009 Definir versionado de esquema (`schema_version`) (Owner: Codex, `db/MIGRATIONS.md`)
+- [x] P3-010 Definir migraciones de esquema (Owner: Codex, `db/migrations/0001__baseline_sprint_1_1.sql` + `db/MIGRATIONS.md`)
+- [x] P3-015 Generar diccionario de datos legible para humanos (Owner: Codex, `db/SCHEMA_CONTRACT.md`)
 - [x] P4-SUPA-001 Crear DDL inicial para Supabase/Postgres + índices (Owner: Codex, `db/supabase_schema.sql`)
 - [x] P4-SUPA-002 Implementar ingest incremental a Postgres/Supabase con upsert por `match_id + parser_version` (Owner: Codex, `aoe2_ingest_postgres.py`)
 - [x] P4-SUPA-003 Implementar ingest batch a Postgres/Supabase (carpeta/lista + reintentos + continue-on-error) (Owner: Codex, `aoe2_ingest_batch_postgres.py`)
+- [x] P1-002 Crear modulo `io` para lectura/escritura de formatos (Owner: Codex, `aoe2stat/io.py`)
+- [x] P1-003 Crear modulo `schema` con dataclasses o modelos tipados (Owner: Codex, `aoe2stat/schema.py`)
+- [x] P1-004 Crear modulo `features` para KPIs derivados (Owner: Codex, `aoe2stat/features.py`)
+- [x] P1-005 Crear modulo `spatial` para representaciones de mapa/grilla (Owner: Codex, `aoe2stat/spatial.py`)
+- [x] P1-006 Crear modulo `batch` para ejecucion masiva (Owner: Codex, `aoe2stat/batch.py`)
+- [x] P1-007 Crear modulo `validation` para controles de calidad (Owner: Codex, `aoe2stat/validation.py`)
+- [x] P1-009 Definir capa de servicios reutilizable por GUI y CLI (Owner: Codex, `aoe2stat/services.py` + uso en `aoe2_parser.py`)
+- [x] P1-014 Definir estrategia de configuracion centralizada (yaml/toml/env) (Owner: Codex, baseline env en `aoe2stat/config.py`)
+- [x] P1-015 Definir interfaz estable para plugins de features (Owner: Codex, `FeaturePlugin` + `FeatureRegistry`)
 
 ## Parte 0 - Alineacion funcional y alcance
 
@@ -105,15 +123,15 @@ Fecha de inicio: 2026-03-03
 - [ ] P3-004 Definir esquema de tabla `metrics_timeseries`
 - [ ] P3-005 Definir esquema de tabla `spatial_frames`
 - [ ] P3-006 Definir esquema de tabla `labels_ml`
-- [ ] P3-007 Documentar tipos, nullabilidad y unidades de cada columna
-- [ ] P3-008 Definir claves primarias y foráneas lógicas
-- [ ] P3-009 Definir versionado de esquema (`schema_version`)
-- [ ] P3-010 Definir migraciones de esquema
+- [x] P3-007 Documentar tipos, nullabilidad y unidades de cada columna
+- [x] P3-008 Definir claves primarias y foráneas lógicas
+- [x] P3-009 Definir versionado de esquema (`schema_version`)
+- [x] P3-010 Definir migraciones de esquema
 - [ ] P3-011 Definir validaciones de integridad por tabla
 - [ ] P3-012 Definir estrategia de particionado de archivos (por fecha/mapa/elo)
 - [ ] P3-013 Definir estrategia de compresión (Parquet codec)
 - [ ] P3-014 Definir convencion de rutas de dataset en disco
-- [ ] P3-015 Generar diccionario de datos legible para humanos
+- [x] P3-015 Generar diccionario de datos legible para humanos
 
 ## Parte 4 - KPIs y métricas de juego (core analytics)
 
@@ -130,8 +148,8 @@ Fecha de inicio: 2026-03-03
 - [ ] P4-011 Formalizar definicion de scouting coverage
 - [ ] P4-012 Formalizar definicion de presion/agresion temprana
 - [ ] P4-013 Formalizar definicion de power spike por timing tech/unit
-- [ ] P4-014 Crear calculadora de KPIs por ventana configurable
-- [ ] P4-015 Crear calculadora de KPIs acumulados al minuto N
+- [x] P4-014 Crear calculadora de KPIs por ventana configurable (Owner: Codex, `aoe2stat/kpis.py::kpis_by_window` + integración en `aoe2_cli.py metrics`)
+- [x] P4-015 Crear calculadora de KPIs acumulados al minuto N (Owner: Codex, `aoe2stat/kpis.py::kpis_at_minute` + integración en `aoe2_cli.py metrics`)
 - [ ] P4-016 Agregar intervalos de confianza para metricas aproximadas
 - [ ] P4-017 Agregar bandera de calidad por KPI (`high/medium/low confidence`)
 - [ ] P4-018 Validar KPIs contra partidas revisadas manualmente
@@ -167,10 +185,10 @@ Fecha de inicio: 2026-03-03
 - [x] P6-002 Agregar salida JSON compacta y JSON detallada (Owner: Codex, implementado en `aoe2_cli.py` con `--json {compact,detailed}`)
 - [ ] P6-003 Agregar salida CSV/Parquet por flags
 - [x] P6-004 Agregar `--schema-version` y `--parser-version` en salida (Owner: Codex, implementado en `aoe2_cli.py` + bloque `meta`)
-- [ ] P6-005 Agregar `--strict` para fallar ante warnings severos
+- [x] P6-005 Agregar `--strict` para fallar ante warnings severos (Owner: Codex, implementado en `aoe2_cli.py` con severidad `severe`)
 - [ ] P6-006 Agregar `--continue-on-error` para lotes
 - [ ] P6-007 Agregar barra de progreso para batch
-- [ ] P6-008 Agregar resumen final de errores por codigo
+- [x] P6-008 Agregar resumen final de errores por codigo (Owner: Codex, implementado en `aoe2_cli.py` (`error_summary` en `batch`))
 - [x] P6-009 GUI: selector de replay individual y carpeta de replays
 - [ ] P6-010 GUI: panel de filtros por jugador/edad/tipo evento
 - [ ] P6-011 GUI: panel de KPIs con valores + sparkline
@@ -188,7 +206,7 @@ Fecha de inicio: 2026-03-03
 
 - [ ] P7-001 Implementar runner batch por carpeta
 - [ ] P7-002 Implementar runner batch por lista de archivos
-- [ ] P7-003 Implementar runner batch por IDs (descarga + parse)
+- [x] P7-003 Implementar runner batch por IDs (descarga + parse)
 - [ ] P7-004 Implementar paralelismo configurable por CPU
 - [ ] P7-005 Implementar control de memoria por worker
 - [ ] P7-006 Implementar reintentos para fallos transitorios
@@ -376,7 +394,7 @@ Fecha de inicio: 2026-03-03
 ## Propuesta de reparto rápido entre varias IAs (inicio)
 
 - [ ] R-001 IA-A: P2-001..P2-010 (inventario y metadata parser)
-- [ ] R-002 IA-B: P4-001..P4-010 (definiciones KPI)
+- [~] R-002 IA-B: P4-001..P4-010 (definiciones KPI) (Owner: Codex, foco inicial en P4-014/P4-015)
 - [ ] R-003 IA-C: P5-001..P5-010 (modelo espacial base)
 - [ ] R-004 IA-D: P12-001..P12-008 (testing base + golden files)
 - [~] R-005 IA-E: P6-001..P6-008 (CLI unificada) (Owner: Codex, tomado P6-001)
