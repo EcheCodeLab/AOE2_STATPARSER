@@ -1,0 +1,12 @@
+{
+  "name": "aoe2_statparser",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NPM launcher scripts for the Python-based AOE2 stat parser project.",
+  "scripts": {
+    "dev": "node scripts/dev.js gui.run_gui",
+    "gui": "node scripts/dev.js gui.run_gui",
+    "parse": "node scripts/dev.js aoe2_parser.py",
+    "parse:download": "node scripts/dev.js aoe2_parser.py --download"
+  }
+}
