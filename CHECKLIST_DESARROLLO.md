@@ -60,6 +60,7 @@ Fecha de inicio: 2026-03-03
 - [~] P2-025 Escribir tests de regresion con replays reales pequeños (Owner: Codex, en implementación `tests/test_part2_regression.py`)
 - [x] P6-012 GUI: overlay de eventos sobre series de tiempo (Owner: Codex, toggle global en menú Ver)
 - [x] P7-003 Implementar runner batch por IDs (descarga + parse) (Owner: Codex, extendido con fetch reciente por jugador alias/profile_id)
+- [x] P5-010 Generar trayectorias agregadas por tipo de unidad (Owner: Codex, baseline visual cinemático en `gui/window.py` con trails + glow + loop)
 - [x] P5-003 Definir grillas base (16x16, 32x32, 64x64) y criterio de eleccion (Owner: Codex, MVP con selector en GUI)
 - [x] P5-014 Crear visualizador de grilla en GUI (Owner: Codex, MVP heatmap NxN)
 - [x] P5-015 Crear reproductor temporal con scrubber de tiempo (Owner: Codex, MVP slider por segundos)
@@ -205,7 +206,7 @@ Fecha de inicio: 2026-03-03
 - [ ] P5-007 Generar heatmap de combates/daño por celda
 - [ ] P5-008 Generar heatmap de control territorial aproximado
 - [ ] P5-009 Generar mapas de riesgo por proximidad enemiga
-- [ ] P5-010 Generar trayectorias agregadas por tipo de unidad
+- [x] P5-010 Generar trayectorias agregadas por tipo de unidad
 - [ ] P5-011 Implementar downsampling temporal para secuencias largas
 - [ ] P5-012 Implementar compresion de tensores espaciales
 - [ ] P5-013 Definir estructura de `spatial_frame` serializable a Parquet/NPZ
@@ -243,6 +244,11 @@ Fecha de inicio: 2026-03-03
 - [x] P6-027 GUI: cálculo bajo demanda por serie (botón `Calcular`) + modo auto opcional (Owner: Codex, implementado en tab `Timeline`)
 - [x] P6-028 GUI: cachear resultados temporales por replay/filtros para evitar recomputo (Owner: Codex, `timeline_cache`)
 - [ ] P6-029 GUI: panel comparativo sincronizado para dos jugadores (económico + militar) en la misma vista
+- [~] P6-030 WEB GUI: corregir contraste tipográfico en modo oscuro (menús, labels, inputs, tablas y tooltips) (Owner: Codex, en implementación)
+- [~] P6-031 WEB GUI: rehacer tooltip espacial para fijarlo por celda/objetos y evitar desplazamiento errático (Owner: Codex, en implementación)
+- [~] P6-032 WEB GUI: expandir capa de edificios para incluir todos los tipos parseables (casa, barracks, mercado, murallas, torres, etc.) (Owner: Codex, en implementación)
+- [~] P6-033 WEB GUI: agregar overlay opcional de posiciones/eventos de unidades (Owner: Codex, en implementación)
+- [~] P6-034 WEB GUI: reestructurar sidebar con secciones colapsables y scroll usable (Owner: Codex, en implementación)
 - [ ] P6-016 GUI: comparar dos jugadores sincronizados
 - [ ] P6-017 GUI: comparar dos partidas sincronizadas por tiempo relativo
 - [ ] P6-018 GUI: tema claro/oscuro sin romper legibilidad

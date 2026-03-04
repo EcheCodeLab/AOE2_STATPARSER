@@ -207,6 +207,9 @@ La pestaña `Mapa` ahora usa una grilla `NxN` para visualizar densidad espacial 
 - resolución de grilla (`16` a `64`)
 - ventana temporal deslizante (segundos)
 - slider de tiempo para reproducir la partida
+- reproducción con `Loop`
+- trails cinemáticos de movimiento con decaimiento temporal
+- glow en eventos recientes para resaltar cinemática
 
 ## Web Viewer (nuevo - migracion en curso)
 

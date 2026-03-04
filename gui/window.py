@@ -34,7 +34,7 @@ from aoe2stat.layers import ParserLayer
 from aoe2stat.metrics import (
     apm_timeseries, unit_created_timeseries, tc_idle_cumulative_timeseries,
     resource_totals_postgame, resource_cumulative_timeseries,
-    resource_spend_timeseries, resource_balance_timeseries, important_events,
+    important_events,
 )
 from aoe2stat.patterns import base_unit_patterns, augment_unit_patterns
 from aoe2stat.pipeline import extract_raw_events
@@ -185,7 +185,9 @@ class MainWindow(QMainWindow):
         self.map_initial_tcs_df = None
         self.map_hover_items: list[dict[str, float | str]] = []
         self.map_hover_annotation = None
+        self.map_hover_last: tuple[int, int, str] | None = None
         self.map_event_log_df = None
+        self.timeline_cache: dict[tuple, object] = {}
 
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
@@ -210,6 +212,7 @@ class MainWindow(QMainWindow):
         self._setup_score_tab()
         self._setup_kpis_tab()
         self._setup_map_tab()
+        self._configure_analytics_tabs()
         self._apply_base_layouts()
         self.tabs.currentChanged.connect(self._on_tab_changed)
         # initialize theme/legend on canvases
@@ -313,27 +316,38 @@ class MainWindow(QMainWindow):
     def _setup_res_tab(self):
         layout = QVBoxLayout(); self.tab_res.setLayout(layout)
         controls = QHBoxLayout(); layout.addLayout(controls)
-        controls.addWidget(QLabel("Recurso:"))
-        self.res_combo = QComboBox(); self.res_combo.addItems(["food","wood","gold","stone"]) ; self.res_combo.currentTextChanged.connect(self.update_res)
-        controls.addWidget(self.res_combo)
-        controls.addWidget(QLabel("Modo:"))
-        # Keep stock analysis in "Stock Total" tab to avoid duplicated views.
-        self.res_mode = QComboBox(); self.res_mode.addItems(["Gasto", "Balance aprox.", "Postgame (si existe)"]) ; self.res_mode.setCurrentText("Gasto")
+        controls.addWidget(QLabel("Serie:"))
+        self.res_mode = QComboBox()
+        self.res_mode.addItems([
+            "Recursos colectados",
+            "Unidades creadas",
+            "Enemigos matados (proxy)",
+            "Edificios construidos",
+            "Clicks/APM",
+        ])
         self.res_mode.currentTextChanged.connect(self.update_res)
-        # Initial stock for Balance aprox.
-        controls.addWidget(QLabel("Stock inicial:"))
-        self.res_stock = QSpinBox(); self.res_stock.setRange(0, 100000); self.res_stock.setValue(0)
-        self.res_stock.valueChanged.connect(self.update_res)
-        controls.addWidget(self.res_stock)
-        # Toggle significant events
-        self.res_events = QCheckBox("Eventos importantes"); self.res_events.setChecked(True)
-        self.res_events.stateChanged.connect(self.update_res)
-        controls.addWidget(self.res_events)
+        controls.addWidget(self.res_mode)
+        controls.addWidget(QLabel("Recurso:"))
+        self.res_combo = QComboBox(); self.res_combo.addItems(["food","wood","gold","stone"]); self.res_combo.currentTextChanged.connect(self.update_res)
+        controls.addWidget(self.res_combo)
+        controls.addWidget(QLabel("Unidad:"))
+        self.res_unit_combo = QComboBox(); self.res_unit_combo.addItems(list(self.unit_patterns.keys())); self.res_unit_combo.currentTextChanged.connect(self.update_res)
+        controls.addWidget(self.res_unit_combo)
         controls.addWidget(QLabel("Ventana (s):"))
-        self.res_window = QComboBox(); self.res_window.addItems(["15","30","45","60","90","120"]) ; self.res_window.setCurrentText("60")
+        self.res_window = QComboBox(); self.res_window.addItems(["15","30","45","60","90","120"]); self.res_window.setCurrentText("60")
         self.res_window.currentTextChanged.connect(self.update_res)
         controls.addWidget(self.res_window)
+        self.res_auto_calc = QCheckBox("Auto calcular"); self.res_auto_calc.setChecked(False)
+        self.res_auto_calc.stateChanged.connect(self._on_res_auto_calc_changed)
+        controls.addWidget(self.res_auto_calc)
+        self.res_calc_btn = QPushButton("Calcular"); self.res_calc_btn.setObjectName("PrimaryButton")
+        self.res_calc_btn.clicked.connect(self.calculate_res_now)
+        controls.addWidget(self.res_calc_btn)
         controls.addStretch(1)
+        layout.addWidget(QLabel("Jugadores a mostrar:"))
+        self.res_players_list = QListWidget(); self.res_players_list.setSelectionMode(QAbstractItemView.MultiSelection)
+        self.res_players_list.itemSelectionChanged.connect(self.update_res)
+        layout.addWidget(self.res_players_list)
         self.res_canvas = PlotCanvas(); layout.addWidget(self.res_canvas)
 
     def _setup_stock_tab(self):
@@ -376,8 +390,9 @@ class MainWindow(QMainWindow):
 
         sidebar_layout.addWidget(QLabel("Resolucion NxN:"))
         self.map_grid_combo = QComboBox()
-        self.map_grid_combo.addItems([f"{self.map_fixed_grid_size} (fijo)"])
-        self.map_grid_combo.setEnabled(False)
+        self.map_grid_combo.addItems(["16", "32", "64", "128"])
+        self.map_grid_combo.setCurrentText(str(self.map_fixed_grid_size))
+        self.map_grid_combo.currentTextChanged.connect(self.update_map)
         sidebar_layout.addWidget(self.map_grid_combo)
 
         self.map_key_objects_check = QCheckBox("Mostrar TC/Castillos")
@@ -400,6 +415,16 @@ class MainWindow(QMainWindow):
         self.map_buildings_check.stateChanged.connect(self.update_map)
         sidebar_layout.addWidget(self.map_buildings_check)
 
+        self.map_grid_overlay_check = QCheckBox("Mostrar grilla NxN")
+        self.map_grid_overlay_check.setChecked(False)
+        self.map_grid_overlay_check.stateChanged.connect(self.update_map)
+        sidebar_layout.addWidget(self.map_grid_overlay_check)
+
+        self.map_norm_check = QCheckBox("Normalizar intensidad [0,1]")
+        self.map_norm_check.setChecked(False)
+        self.map_norm_check.stateChanged.connect(self.update_map)
+        sidebar_layout.addWidget(self.map_norm_check)
+
         self.map_cinematic_check = QCheckBox("Modo cinematica de movimiento")
         self.map_cinematic_check.setChecked(True)
         self.map_cinematic_check.stateChanged.connect(self.update_map)
@@ -418,6 +443,23 @@ class MainWindow(QMainWindow):
         self.map_cine_zoom_combo.setCurrentText("Normal")
         self.map_cine_zoom_combo.currentTextChanged.connect(self.update_map)
         sidebar_layout.addWidget(self.map_cine_zoom_combo)
+
+        self.map_trails_check = QCheckBox("Mostrar trails cinemáticos")
+        self.map_trails_check.setChecked(True)
+        self.map_trails_check.stateChanged.connect(self.update_map)
+        sidebar_layout.addWidget(self.map_trails_check)
+
+        sidebar_layout.addWidget(QLabel("Trail ventana (s):"))
+        self.map_trail_window_combo = QComboBox()
+        self.map_trail_window_combo.addItems(["10", "20", "30", "45", "60", "90"])
+        self.map_trail_window_combo.setCurrentText("30")
+        self.map_trail_window_combo.currentTextChanged.connect(self.update_map)
+        sidebar_layout.addWidget(self.map_trail_window_combo)
+
+        self.map_glow_check = QCheckBox("Glow eventos recientes")
+        self.map_glow_check.setChecked(True)
+        self.map_glow_check.stateChanged.connect(self.update_map)
+        sidebar_layout.addWidget(self.map_glow_check)
 
         sidebar_layout.addWidget(QLabel("Bookmarks (doble click para ir):"))
         self.map_bookmarks = QListWidget()
@@ -470,6 +512,9 @@ class MainWindow(QMainWindow):
         self.map_speed_combo.addItems(["0.5x", "1x", "2x", "4x"])
         self.map_speed_combo.setCurrentText("1x")
         timeline_layout.addWidget(self.map_speed_combo)
+        self.map_loop_check = QCheckBox("Loop")
+        self.map_loop_check.setChecked(True)
+        timeline_layout.addWidget(self.map_loop_check)
         self.map_sidebar_toggle_btn = QPushButton("Ocultar filtros")
         self.map_sidebar_toggle_btn.clicked.connect(self._toggle_map_sidebar)
         timeline_layout.addWidget(self.map_sidebar_toggle_btn)
@@ -505,6 +550,22 @@ class MainWindow(QMainWindow):
             self.map_bookmarks.setMinimumHeight(150 if compact else 220)
         if hasattr(self, "map_time_label"):
             self.map_time_label.setMinimumWidth(46 if compact else 54)
+
+    def _configure_analytics_tabs(self):
+        # Keep the UI focused on the analytics flow with 3 primary tabs.
+        self.tabs.setTabText(self.tabs.indexOf(self.tab_kpis), "Overview")
+        self.tabs.setTabText(self.tabs.indexOf(self.tab_res), "Timeline")
+        self.tabs.setTabText(self.tabs.indexOf(self.tab_map), "Mapa")
+        hidden_tabs = [self.tab_apm, self.tab_units, self.tab_idle, self.tab_stock, self.tab_score]
+        for tab in hidden_tabs:
+            idx = self.tabs.indexOf(tab)
+            if idx < 0:
+                continue
+            try:
+                self.tabs.setTabVisible(idx, False)
+            except Exception:
+                # Qt versions without setTabVisible: move tab text to marker and keep last.
+                self.tabs.setTabText(idx, "·")
 
     def _apply_qt_style(self, dark: bool):
         compact = (self.ui_layout_mode == "compact")
@@ -883,14 +944,20 @@ class MainWindow(QMainWindow):
             self.map_build_events_df = self._extract_building_events()
             self.map_delete_events_df = self._extract_delete_events()
             self.map_event_log_df = self._build_map_event_log()
+            self.timeline_cache.clear()
             self._refresh_bookmarks_ui()
             # Populate players list
             self.units_players_list.clear()
+            self.res_players_list.clear()
             for p in self.match.players:
                 item = QListWidgetItem(p.name)
                 item.setData(1, int(p.number))
                 item.setSelected(True)
                 self.units_players_list.addItem(item)
+                item2 = QListWidgetItem(p.name)
+                item2.setData(1, int(p.number))
+                item2.setSelected(True)
+                self.res_players_list.addItem(item2)
             self.map_player_combo.blockSignals(True)
             self.map_player_combo.clear()
             self.map_player_combo.addItem("Todos")
@@ -904,7 +971,7 @@ class MainWindow(QMainWindow):
                 self.map_slider.setValue(0)
             except Exception:
                 pass
-            self.update_apm(); self.update_units(); self.update_idle(); self.update_res(); self.update_stock(); self.update_score(); self.update_kpis(); self.update_map()
+            self.update_res(); self.update_kpis(); self.update_map()
             self._update_replay_status()
         except Exception as e:  # pragma: no cover
             QMessageBox.critical(self, "Error", f"No se pudo abrir el replay:\n{e}\n\n{traceback.format_exc()}")
@@ -1015,12 +1082,15 @@ class MainWindow(QMainWindow):
         step_sec = (self.map_playback_timer.interval() / 1000.0) * self._playback_speed()
         self.map_playback_pos += step_sec
         if self.map_playback_pos >= max_t:
-            self.map_playback_pos = max_t
-            self.map_slider.setValue(int(self.map_playback_pos))
-            self.map_playback_is_running = False
-            self.map_play_btn.setText("Play")
-            self.map_playback_timer.stop()
-            return
+            if hasattr(self, "map_loop_check") and self.map_loop_check.isChecked():
+                self.map_playback_pos = 0.0
+            else:
+                self.map_playback_pos = max_t
+                self.map_slider.setValue(int(self.map_playback_pos))
+                self.map_playback_is_running = False
+                self.map_play_btn.setText("Play")
+                self.map_playback_timer.stop()
+                return
         self.map_slider.setValue(int(self.map_playback_pos))
 
     def _extract_key_objects(self):
@@ -1125,30 +1195,28 @@ class MainWindow(QMainWindow):
         if hasattr(self, "map_sidebar_toggle_btn"):
             self.map_sidebar_toggle_btn.setText("Mostrar filtros" if is_visible else "Ocultar filtros")
 
+    def _selected_map_grid_size(self) -> int:
+        if not hasattr(self, "map_grid_combo"):
+            return int(self.map_fixed_grid_size)
+        txt = str(self.map_grid_combo.currentText() or "").strip()
+        try:
+            val = int(txt.split()[0])
+        except Exception:
+            val = int(self.map_fixed_grid_size)
+        return max(8, min(256, val))
+
     def _set_map_hover_items(self, items: list[dict[str, float | str]]):
         self.map_hover_items = items
+        self.map_hover_last = None
         if self.map_hover_annotation is not None:
             self.map_hover_annotation.set_visible(False)
 
     def _on_map_hover(self, event):
         if self.map_canvas is None or event is None:
             return
-        if self.map_hover_annotation is None:
-            ax = self.map_canvas.ax
-            self.map_hover_annotation = ax.annotate(
-                "",
-                xy=(0, 0),
-                xytext=(10, 10),
-                textcoords="offset points",
-                bbox=dict(boxstyle="round,pad=0.3", fc="#0f1116" if self.map_canvas.dark else "#ffffff", ec="#777777", alpha=0.95),
-                color="#f0f0f0" if self.map_canvas.dark else "#111111",
-                fontsize=8,
-            )
-            self.map_hover_annotation.set_visible(False)
         if event.inaxes != self.map_canvas.ax or event.xdata is None or event.ydata is None or not self.map_hover_items:
-            if self.map_hover_annotation.get_visible():
-                self.map_hover_annotation.set_visible(False)
-                self.map_canvas.draw_idle()
+            QtWidgets.QToolTip.hideText()
+            self.map_hover_last = None
             return
         x = float(event.xdata)
         y = float(event.ydata)
@@ -1167,18 +1235,18 @@ class MainWindow(QMainWindow):
                 best_d = d
                 best = item
         if best is None or best_d > threshold:
-            if self.map_hover_annotation.get_visible():
-                self.map_hover_annotation.set_visible(False)
-                self.map_canvas.draw_idle()
+            QtWidgets.QToolTip.hideText()
+            self.map_hover_last = None
             return
-        self.map_hover_annotation.xy = (float(best["x"]), float(best["y"]))
-        self.map_hover_annotation.set_text(str(best.get("text", "")))
-        self.map_hover_annotation.get_bbox_patch().set_facecolor("#0f1116" if self.map_canvas.dark else "#ffffff")
-        self.map_hover_annotation.get_bbox_patch().set_edgecolor("#777777")
-        self.map_hover_annotation.set_color("#f0f0f0" if self.map_canvas.dark else "#111111")
-        if not self.map_hover_annotation.get_visible():
-            self.map_hover_annotation.set_visible(True)
-        self.map_canvas.draw_idle()
+        text = str(best.get("text", ""))
+        ix = int(round(float(best.get("x", 0.0))))
+        iy = int(round(float(best.get("y", 0.0))))
+        sig = (ix, iy, text)
+        if self.map_hover_last == sig:
+            return
+        self.map_hover_last = sig
+        pos = self.map_canvas.mapToGlobal(QtCore.QPoint(int(event.x), int(event.y)))
+        QtWidgets.QToolTip.showText(pos, text, self.map_canvas)
 
     def _extract_initial_tcs(self):
         if not self.match:
@@ -1508,10 +1576,11 @@ class MainWindow(QMainWindow):
         self.apm_canvas.plot_lines(ts.index/60, series, 'Tiempo (min)', 'APM', f'APM ventana {w}s', colors)
         self._overlay_important_events(self.apm_canvas)
 
-    def _selected_players(self):
+    def _selected_players(self, players_list: QListWidget | None = None):
+        target = players_list or self.units_players_list
         pids = []
-        for i in range(self.units_players_list.count()):
-            item = self.units_players_list.item(i)
+        for i in range(target.count()):
+            item = target.item(i)
             if item.isSelected():
                 pids.append(int(item.data(1)))
         return pids
@@ -1566,101 +1635,131 @@ class MainWindow(QMainWindow):
                             texts.append('')
                     self.idle_canvas.add_event_markers(xs, kinds, colors=cols, texts=texts)
 
-    def update_res(self):
+    def _timeline_cache_key(self, mode: str, res: str, unit_name: str, window_sec: int, players: list[int]) -> tuple:
+        replay_key = str(self.replay_path.resolve()) if self.replay_path else ""
+        return (replay_key, mode, res, unit_name, int(window_sec), tuple(sorted(int(p) for p in players)))
+
+    def _timeseries_from_event_counts(self, event_df, player_ids: list[int], window_sec: int):
+        import pandas as pd
+        if event_df is None or event_df.empty:
+            return pd.DataFrame()
+        w = max(1, int(window_sec))
+        base = event_df[["time_sec", "player_id"]].copy()
+        base = base[base["player_id"].notna()]
+        if base.empty:
+            return pd.DataFrame()
+        base["player_id"] = base["player_id"].astype(int)
+        if player_ids:
+            base = base[base["player_id"].isin([int(p) for p in player_ids])]
+        if base.empty:
+            return pd.DataFrame()
+        base["bucket"] = ((base["time_sec"].astype(float) // w) * w).astype(int)
+        pivot = base.groupby(["bucket", "player_id"]).size().unstack(fill_value=0).sort_index()
+        max_sec = int(getattr(getattr(self.match, "duration", None), "total_seconds", lambda: 0)())
+        max_bucket = max(0, (max_sec // w) * w)
+        full_index = pd.Index(np.arange(0, max_bucket + w, w), name="bucket")
+        pivot = pivot.reindex(full_index, fill_value=0)
+        return pivot.cumsum()
+
+    def _compute_timeline_series(self, mode: str, res: str, unit_name: str, window_sec: int, player_ids: list[int]):
+        import pandas as pd
+        mode = str(mode)
+        w = max(1, int(window_sec))
+        if mode == "Recursos colectados":
+            per_player = resource_totals_postgame(self.replay_path)
+            ts = resource_cumulative_timeseries(self.match, per_player, resource=res, window_sec=w)
+            ylabel = f"{res.title()} acumulado"
+            title = f"{res.title()} colectado acumulado"
+        elif mode == "Unidades creadas":
+            pattern = self.unit_patterns.get(unit_name, unit_name)
+            ts = unit_created_timeseries(self.match, pattern, window_sec=w)
+            ylabel = "Unidades acumuladas"
+            title = f"Unidades creadas ({unit_name})"
+        elif mode == "Enemigos matados (proxy)":
+            if self.events_df is None or self.events_df.empty:
+                ts = pd.DataFrame()
+            else:
+                mask = self.events_df["action_type"].astype(str).str.contains("KILL|DESTROY|DELETE", case=False, regex=True)
+                ts = self._timeseries_from_event_counts(self.events_df[mask], player_ids, w)
+            ylabel = "Bajas enemigas (proxy)"
+            title = "Bajas enemigas acumuladas (proxy)"
+        elif mode == "Edificios construidos":
+            if self.events_df is None or self.events_df.empty:
+                ts = pd.DataFrame()
+            else:
+                mask = self.events_df["action_type"].astype(str).str.upper() == "BUILD"
+                ts = self._timeseries_from_event_counts(self.events_df[mask], player_ids, w)
+            ylabel = "Edificios construidos"
+            title = "Edificios construidos acumulados"
+        elif mode == "Clicks/APM":
+            if self.events_df is None or self.events_df.empty:
+                ts = pd.DataFrame()
+            else:
+                ts = self._timeseries_from_event_counts(self.events_df, player_ids, w)
+            ylabel = "Clicks acumulados"
+            title = "Clicks acumulados (APM relacionado)"
+        else:
+            ts = pd.DataFrame()
+            ylabel = "Valor"
+            title = mode
+
+        if ts is None or ts.empty:
+            return np.array([]), {}, ylabel, title
+
+        if player_ids:
+            keep = [pid for pid in ts.columns if int(pid) in set(int(p) for p in player_ids)]
+            ts = ts[keep] if keep else ts.iloc[:, 0:0]
+        if ts.empty:
+            return np.array([]), {}, ylabel, title
+
+        player_name_by_id = {int(p.number): str(p.name) for p in self.match.players}
+        x_vals = ts.index.to_numpy(dtype=float) / 60.0
+        series = {}
+        for pid in ts.columns:
+            label = player_name_by_id.get(int(pid), f"P{int(pid)}")
+            series[label] = ts[pid].to_numpy(dtype=float)
+        return x_vals, series, ylabel, title
+
+    def _on_res_auto_calc_changed(self, *_args):
+        enabled = not bool(self.res_auto_calc.isChecked())
+        self.res_calc_btn.setEnabled(enabled)
+        if not enabled:
+            self.update_res()
+
+    def calculate_res_now(self):
+        self.update_res(force=True)
+
+    def update_res(self, *_args, force: bool = False):
         if not self.match or not self.replay_path:
             return
-        res = self.res_combo.currentText()
-        w = int(self.res_window.currentText())
         mode = self.res_mode.currentText()
-        # default stock per resource for Balance mode if value is 0
-        if mode == "Balance aprox." and self.res_stock.value() == 0:
-            defaults = {"food": 200, "wood": 200, "gold": 100, "stone": 200}
-            self.res_stock.setValue(defaults.get(res, 0))
-        ts = None
-        title = ""
-        if mode == "Gasto":
-            ts = resource_spend_timeseries(self.match, resource=res, window_sec=w)
-            title = f"Gasto por ventana — {w}s"
-        elif mode == "Balance aprox.":
-            ts = resource_balance_timeseries(self.match, resource=res, window_sec=w, start_at=float(self.res_stock.value()))
-            title = f"Saldo aprox. (spend + mercado) — ventana {w}s"
-        else:
-            per_player = resource_totals_postgame(self.replay_path)
-            try:
-                ts = resource_cumulative_timeseries(self.match, per_player, resource=res, window_sec=w)
-            except Exception:
-                ts = None
-            title = f"{res.title()} acumulado (postgame) — ventana {w}s"
-        # If no data or all zeros, show message
-        if (ts is None) or ts.empty or ((ts.sum().sum() if not ts.empty else 0.0) == 0.0):
-            msg = "Sin datos de recursos (usa 'Gasto' para estimación)" if mode != "Gasto" else "Sin datos suficientes para estimar gasto"
+        res = self.res_combo.currentText()
+        unit_name = self.res_unit_combo.currentText()
+        w = int(self.res_window.currentText())
+        player_ids = self._selected_players(self.res_players_list)
+        if not force and not self.res_auto_calc.isChecked():
+            self.res_canvas.draw_message("Auto calcular desactivado.\nPresiona 'Calcular' para actualizar.")
             self.export_cache["res"] = {"type": "none"}
-            self.res_canvas.draw_message(msg)
             return
-        series = {next(p.name for p in self.match.players if p.number == pid): ts[pid].values for pid in ts.columns}
-        ylabel_map = {
-            "Gasto": f"Gasto {res}",
-            "Balance aprox.": f"Saldo {res}",
-            "Postgame (si existe)": f"{res.title()} acumulado",
-        }
-        ylabel = ylabel_map.get(mode, f"{res}")
-        self._set_line_export_cache("res", ts.index/60, series, "time_min")
+
+        key = self._timeline_cache_key(mode, res, unit_name, w, player_ids)
+        cached = self.timeline_cache.get(key)
+        if cached is None:
+            x_vals, series, ylabel, title = self._compute_timeline_series(mode, res, unit_name, w, player_ids)
+            cached = (x_vals, series, ylabel, title)
+            self.timeline_cache[key] = cached
+        else:
+            x_vals, series, ylabel, title = cached
+
+        if not series:
+            self.export_cache["res"] = {"type": "none"}
+            self.res_canvas.draw_message("Sin datos para la seleccion actual.")
+            return
+
+        self._set_line_export_cache("res", x_vals, series, "time_min")
         colors = self._player_color_map()
-        self.res_canvas.plot_lines(ts.index/60, series, 'Tiempo (min)', ylabel, title, colors)
-        # Add significant events on spend view
-        if mode == "Gasto" and self.res_events.isChecked():
-            ev = important_events(self.match)
-            if not ev.empty:
-                xs = []
-                kinds = []
-                cols = []
-                texts = []
-                col_map = {p.number: self._player_color_map().get(p.name, 'k') for p in self.match.players}
-                for _, row in ev.iterrows():
-                    k = row['kind']
-                    if k in ('age', 'castle', 'elite', 'tech', 'tc'):
-                        xs.append(float(row['time_sec'])/60.0)
-                        kinds.append(k)
-                        cols.append(col_map.get(int(row['player']), 'k'))
-                        # Short text per event
-                        lbl = str(row['label']).lower()
-                        if k == 'age':
-                            if 'feudal' in lbl:
-                                texts.append('F')
-                            elif 'castle' in lbl:
-                                texts.append('C')
-                            elif 'imperial' in lbl:
-                                texts.append('I')
-                            else:
-                                texts.append('A')
-                        elif k == 'castle':
-                            texts.append('C')
-                        elif k == 'elite':
-                            texts.append('E')
-                        elif k == 'tech':
-                            texts.append('T')
-                        elif k == 'tc':
-                            texts.append('TC')
-                if xs:
-                    self.res_canvas.add_event_markers(xs, kinds, colors=cols, texts=texts)
-                    # Add marker legend for clarity
-                    try:
-                        from matplotlib.lines import Line2D
-                        from matplotlib.legend import Legend
-                        handles = [
-                            Line2D([0], [0], marker='*', color='none', label='Ages (F/C/I)', markerfacecolor='k', markersize=8, linestyle='None'),
-                            Line2D([0], [0], marker='s', color='none', label='Castle', markerfacecolor='k', markersize=8, linestyle='None'),
-                            Line2D([0], [0], marker='D', color='none', label='Elite', markerfacecolor='k', markersize=8, linestyle='None'),
-                            Line2D([0], [0], marker='^', color='none', label='Tech', markerfacecolor='k', markersize=8, linestyle='None'),
-                            Line2D([0], [0], marker='v', color='none', label='TC extra', markerfacecolor='k', markersize=8, linestyle='None'),
-                        ]
-                        leg2 = Legend(self.res_canvas.ax, handles=handles, labels=[h.get_label() for h in handles], loc='upper right', framealpha=0.2, fontsize=8)
-                        if self.res_canvas.dark:
-                            leg2.get_frame().set_facecolor('#0f1116')
-                            leg2.get_frame().set_edgecolor('#5a6472')
-                        self.res_canvas.ax.add_artist(leg2)
-                    except Exception:
-                        pass
+        self.res_canvas.plot_lines(x_vals, series, 'Tiempo (min)', ylabel, f"{title} — ventana {w}s", colors)
+        self._overlay_important_events(self.res_canvas)
 
     def _setup_score_tab(self):
         layout = QVBoxLayout(); self.tab_score.setLayout(layout)
@@ -2008,7 +2107,7 @@ class MainWindow(QMainWindow):
         selected_player = self.map_player_combo.currentText()
         selected_family = self.map_family_combo.currentText()
         layer = self.map_layer_combo.currentText()
-        grid_size = int(self.map_fixed_grid_size)
+        grid_size = self._selected_map_grid_size()
         map_dim = float(getattr(self.match.map, "dimension", 120) or 120)
         map_dim = map_dim if map_dim > 0 else 120.0
 
@@ -2098,6 +2197,11 @@ class MainWindow(QMainWindow):
         else:
             heat_show = (pulse_term * 1.0) + (static_term * 0.7)
 
+        if hasattr(self, "map_norm_check") and self.map_norm_check.isChecked():
+            max_abs = float(np.max(np.abs(heat_show))) if heat_show.size > 0 else 0.0
+            if max_abs > 0:
+                heat_show = heat_show / max_abs
+
         self.map_canvas.ax.clear()
         self.map_canvas._apply_theme()
         cmap = "coolwarm" if layer == "Presión" else ("inferno" if self.map_canvas.dark else "YlOrRd")
@@ -2106,6 +2210,89 @@ class MainWindow(QMainWindow):
         self.map_canvas.ax.set_ylabel("Y cell")
         self.map_canvas.ax.set_xticks(np.linspace(0, grid_size - 1, 5).astype(int))
         self.map_canvas.ax.set_yticks(np.linspace(0, grid_size - 1, 5).astype(int))
+
+        # Cinematic trails: recent movement path with temporal decay.
+        if is_cinematic and hasattr(self, "map_trails_check") and self.map_trails_check.isChecked():
+            try:
+                trail_window = int(self.map_trail_window_combo.currentText()) if hasattr(self, "map_trail_window_combo") else 30
+            except Exception:
+                trail_window = 30
+            trail_t0 = max(0.0, t - float(trail_window))
+            trail_df = self.events_df[
+                (self.events_df["time_sec"] >= trail_t0)
+                & (self.events_df["time_sec"] <= t)
+                & self.events_df["x"].notna()
+                & self.events_df["y"].notna()
+            ].copy()
+            trail_df = trail_df[trail_df["action_family"].astype(str).isin(["movement", "military"])]
+            if selected_family != "Todos":
+                trail_df = trail_df[trail_df["action_family"] == selected_family]
+            if selected_player != "Todos" and layer in ("Actividad", "Edificios"):
+                trail_df = trail_df[trail_df["player_name"].astype(str) == selected_player]
+            elif layer in ("Propio", "Enemigo"):
+                sel_team_id = self._selected_player_team_id(selected_player)
+                if sel_team_id is not None and not trail_df.empty:
+                    trail_df["team_id"] = trail_df["player_id"].astype(int).map(lambda pid: team_map.get(int(pid), int(pid)))
+                    if layer == "Propio":
+                        trail_df = trail_df[trail_df["team_id"].astype(int) == int(sel_team_id)]
+                    else:
+                        trail_df = trail_df[trail_df["team_id"].astype(int) != int(sel_team_id)]
+            if len(trail_df) > 3500:
+                trail_df = trail_df.sample(3500, random_state=42).sort_values("time_sec")
+            if not trail_df.empty:
+                tx = np.floor((trail_df["x"].astype(float) / map_dim) * grid_size).astype(int).clip(0, grid_size - 1).to_numpy()
+                ty = np.floor((trail_df["y"].astype(float) / map_dim) * grid_size).astype(int).clip(0, grid_size - 1).to_numpy()
+                trow = (grid_size - 1 - ty).astype(float)
+                tcol = tx.astype(float)
+                age = ((trail_df["time_sec"].astype(float).to_numpy() - trail_t0) / max(1.0, float(trail_window))).clip(0.0, 1.0)
+                alpha_vals = 0.08 + (0.72 * age)
+                self.map_canvas.ax.scatter(
+                    tcol,
+                    trow,
+                    c=age,
+                    cmap="magma",
+                    s=10 + (18 * age),
+                    alpha=alpha_vals,
+                    linewidths=0.0,
+                    zorder=4,
+                    label="Trail",
+                )
+                # Per-player path spline-like lines (ordered by time).
+                trail_df = trail_df.assign(gx=tcol, gy=trow, age=age)
+                for _, grp in trail_df.sort_values("time_sec").groupby("player_id"):
+                    if len(grp) < 2:
+                        continue
+                    if len(grp) > 400:
+                        grp = grp.iloc[-400:]
+                    self.map_canvas.ax.plot(
+                        grp["gx"].to_numpy(),
+                        grp["gy"].to_numpy(),
+                        color="#ffd166" if self.map_canvas.dark else "#8a4f00",
+                        linewidth=0.9,
+                        alpha=0.18,
+                        zorder=3.8,
+                    )
+                # Glow on the freshest events.
+                if hasattr(self, "map_glow_check") and self.map_glow_check.isChecked():
+                    fresh = trail_df[trail_df["time_sec"] >= (t - 2.5)]
+                    if not fresh.empty:
+                        self.map_canvas.ax.scatter(
+                            fresh["gx"].to_numpy(),
+                            fresh["gy"].to_numpy(),
+                            s=70,
+                            facecolors="none",
+                            edgecolors="#ffe28a" if self.map_canvas.dark else "#ff9800",
+                            linewidths=0.8,
+                            alpha=0.65,
+                            zorder=4.5,
+                        )
+
+        if hasattr(self, "map_grid_overlay_check") and self.map_grid_overlay_check.isChecked():
+            grid_col = "#5f6f82" if self.map_canvas.dark else "#9fb0c5"
+            for g in range(grid_size + 1):
+                x = g - 0.5
+                self.map_canvas.ax.axvline(x, color=grid_col, linewidth=0.25, alpha=0.35, zorder=2)
+                self.map_canvas.ax.axhline(x, color=grid_col, linewidth=0.25, alpha=0.35, zorder=2)
 
         if is_cinematic and len(gx_all) > 0:
             if layer == "Presión":
@@ -2208,6 +2395,7 @@ class MainWindow(QMainWindow):
         self.map_canvas.ax.set_title(
             f"Mapa NxN ({grid_size}x{grid_size}) | capa {layer_label} | {selected_player} | {selected_family} | ventana {lookback}s | "
             f"eventos {len(df_window)} | {'cinemático' if is_cinematic else 'estático'} | marcadores {markers_drawn}"
+            f"{' | normalizado' if (hasattr(self, 'map_norm_check') and self.map_norm_check.isChecked()) else ''}"
         )
         handles, labels = self.map_canvas.ax.get_legend_handles_labels()
         if handles and labels:
